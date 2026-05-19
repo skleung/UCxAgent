@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>UCx AI Agent — RN Culture Review</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -14,32 +14,35 @@
         extend: {
           colors: {
             epic: {
-              header:   '#1976D2',
-              dark:     '#1565C0',
-              light:    '#42A5F5',
-              bg:       '#EEF2F7',
-              rowHover: '#E8F4FD',
-              rowSel:   '#CCE4F7',
-              sectionBg:'#E3EFF8',
-              border:   '#BBDEFB',
-              text:     '#0D47A1',
+              header:    '#1976D2',
+              dark:      '#1565C0',
+              light:     '#42A5F5',
+              bg:        '#EEF2F7',
+              rowHover:  '#E8F4FD',
+              rowSel:    '#CCE4F7',
+              sectionBg: '#E3EFF8',
+              border:    '#BBDEFB',
+              text:      '#0D47A1',
             }
-          }
+          },
+          screens: { xs: '400px' }
         }
       }
     }
   </script>
   <style>
-    body { font-family:'Segoe UI',system-ui,sans-serif; background:#EEF2F7; margin:0; }
+    * { box-sizing: border-box; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:#EEF2F7; margin:0; -webkit-tap-highlight-color:transparent; }
     .scrollbar-thin::-webkit-scrollbar { width:4px; }
     .scrollbar-thin::-webkit-scrollbar-track { background:transparent; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background:#BBDEFB; border-radius:2px; }
+    .scrollbar-none::-webkit-scrollbar { display:none; }
+    .scrollbar-none { -ms-overflow-style:none; scrollbar-width:none; }
     @keyframes pulse-amber { 0%,100%{opacity:1} 50%{opacity:.55} }
     .pulse-amber { animation:pulse-amber 1.6s ease-in-out infinite; }
     .accordion-body { overflow:hidden; transition:max-height .22s ease; }
-    .epic-tab-active  { border-bottom:3px solid #1976D2; color:#1565C0; background:#fff; }
-    .epic-tab-inactive{ border-bottom:3px solid transparent; color:#555; }
-    .epic-tab-inactive:hover { background:#E8F4FD; color:#1565C0; }
+    /* safe-area padding for iOS notch */
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
   </style>
 </head>
 <body>
@@ -79,15 +82,9 @@ const DRUG_META = {
 };
 
 const ALLERGY_CROSS = {
-  "penicillin":      ["penicillin","cephalosporin","monobactam"],
-  "cephalosporin":   ["cephalosporin"],
-  "sulfa":           ["sulfa"],
-  "fluoroquinolone": ["fluoroquinolone"],
-  "aminoglycoside":  ["aminoglycoside"],
-  "carbapenem":      ["carbapenem"],
-  "nitrofuran":      ["nitrofuran"],
-  "tetracycline":    ["tetracycline"],
-  "glycopeptide":    ["glycopeptide"],
+  "penicillin":["penicillin","cephalosporin","monobactam"],"cephalosporin":["cephalosporin"],
+  "sulfa":["sulfa"],"fluoroquinolone":["fluoroquinolone"],"aminoglycoside":["aminoglycoside"],
+  "carbapenem":["carbapenem"],"nitrofuran":["nitrofuran"],"tetracycline":["tetracycline"],"glycopeptide":["glycopeptide"],
 };
 
 const ANTIBIOGRAMS = {
@@ -181,6 +178,26 @@ const EMPIRIC_FOR = {
   "MDR Pseudomonas":         ["Ciprofloxacin","Piperacillin-Tazobactam","Cefepime"],
 };
 
+// Guaranteed non-MDRO organisms for discrepancy cases
+const NON_MDRO_ORGS = [
+  ...Array(20).fill("E. coli"),
+  ...Array(10).fill("Klebsiella pneumoniae"),
+  ...Array(6).fill("Proteus mirabilis"),
+  ...Array(6).fill("Enterococcus faecalis"),
+  ...Array(4).fill("Staphylococcus saprophyticus"),
+  ...Array(4).fill("Enterobacter cloacae"),
+];
+
+// General pool (cleared cases — can include MDRO which will become cleared anyway)
+const GENERAL_POOL = [
+  ...Array(18).fill("E. coli"), ...Array(8).fill("Klebsiella pneumoniae"),
+  ...Array(4).fill("Proteus mirabilis"), ...Array(4).fill("Enterococcus faecalis"),
+  ...Array(3).fill("Staphylococcus saprophyticus"), ...Array(3).fill("Enterobacter cloacae"),
+  ...Array(5).fill("MRSA"), ...Array(4).fill("VRE (E. faecium)"),
+  ...Array(6).fill("ESBL E. coli"), ...Array(5).fill("ESBL Klebsiella"),
+  ...Array(3).fill("CRE Klebsiella"), ...Array(4).fill("Pseudomonas aeruginosa"), ...Array(3).fill("MDR Pseudomonas"),
+];
+
 function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
 function rndInt(lo,hi){ return Math.floor(Math.random()*(hi-lo+1))+lo; }
 function seededId(i){ return `PT-${String(10000+i).padStart(5,'0')}`; }
@@ -202,63 +219,63 @@ function buildContext(organism, caseType, age, sex) {
   const s = sex==="F"?"female":"male";
   const T = {
     cleared:[
-      `${age}yo ${s} presenting with 2 days of dysuria and urinary frequency. No fever, flank pain, or systemic symptoms. UA positive for leukocyte esterase and nitrites. Culture grew ${organism} >100,000 CFU/mL susceptible to prescribed empiric therapy. Consistent with uncomplicated cystitis. No prior UTI in past 6 months.`,
-      `${age}yo ${s} with burning on urination ×3 days. Afebrile, hemodynamically stable. UA remarkable for pyuria. Culture finalized: ${organism} — susceptibility confirms current antibiotic appropriate. No upper tract symptoms. Managed as outpatient.`,
+      `${age}yo ${s} with 2 days of dysuria and urinary frequency. No fever, flank pain, or systemic symptoms. UA positive for leukocyte esterase and nitrites. Culture grew ${organism} >100,000 CFU/mL susceptible to prescribed empiric therapy. Consistent with uncomplicated cystitis.`,
+      `${age}yo ${s} with burning on urination ×3 days. Afebrile, hemodynamically stable. Culture finalized: ${organism} — susceptibility confirms current antibiotic is appropriate. No upper tract symptoms. Managed as outpatient.`,
       `${age}yo ${s} with urgency, frequency, and suprapubic discomfort ×2 days. Vitals stable, afebrile. Culture: ${organism} — susceptibility profile confirms empiric therapy. No escalation needed.`,
     ],
     discrepancy:[
-      `${age}yo ${s} with 3 days of dysuria and frequency, started on empiric therapy. Culture now finalized revealing resistance to current agent. No systemic symptoms, afebrile. Antibiogram-guided therapy change recommended per protocol.`,
+      `${age}yo ${s} with 3 days of dysuria and frequency, started on empiric therapy at clinic. Culture now finalized revealing resistance to current agent. No systemic symptoms, afebrile. Antibiogram-guided therapy change recommended per protocol.`,
       `${age}yo ${s} referred from clinic for UTI symptoms. Empiric antibiotic prescribed at visit. Urine culture grew ${organism} with resistance to current regimen. Patient afebrile, no upper tract involvement. Oral alternative per antibiogram preferred.`,
       `${age}yo ${s} with recurrent UTI history; culture-confirmed resistance to empiric drug. Labs otherwise unremarkable. Discharge on culture-appropriate oral antibiotic recommended.`,
     ],
     pyelo:[
       `${age}yo ${s} presenting with fever (Tmax 38.9°C), rigors, right flank pain, and costovertebral angle tenderness. Dysuria and frequency ×4 days. UA 3+ LE, many bacteria, nitrites positive. WBC 14.2k. Culture: ${organism}. Concern for acute pyelonephritis — IV antibiotics and likely admission required.`,
-      `${age}yo ${s} with 5-day UTI history now complicated by fever, nausea, vomiting, and back pain. Systemically ill appearing. CBC: WBC 16.5k with left shift. Culture: ${organism}. Pyelonephritis suspected — IV therapy warranted; outpatient IV vs admission to be determined with MD.`,
+      `${age}yo ${s} with 5-day UTI history now complicated by fever, nausea, vomiting, and back pain. Systemically ill appearing. CBC: WBC 16.5k with left shift. Culture: ${organism}. Pyelonephritis suspected — IV therapy warranted.`,
       `${age}yo ${s} with recurrent UTI presenting with bilateral flank pain and fever (38.7°C). CVA tenderness bilateral. CRP elevated. Culture: ${organism}. Complex pyelonephritis — IV antibiotics indicated, escalation to MD required.`,
     ],
     mdro:[
       `${age}yo ${s} with healthcare-associated risk factors (recent hospitalization, prior broad-spectrum antibiotic exposure). Urine culture grew ${organism}. Multi-drug resistant profile confirmed. No oral options available per institutional antibiogram — IV therapy required. Likely requires admission. ID consult recommended.`,
       `${age}yo ${s} with history of recurrent UTIs and prior MDRO colonization on file. Culture confirmed ${organism}. All standard oral agents resistant. IV antibiotics indicated; patient likely requires hospital admission. Notify MD, consider ID consultation.`,
-      `${age}yo ${s} from long-term care facility with indwelling urinary catheter. Catheter-associated UTI criteria met. Culture: ${organism} — pan-resistant profile. No susceptible oral agents. Escalate to MD for admission planning and IV antibiotic selection.`,
+      `${age}yo ${s} from long-term care facility with indwelling urinary catheter. Culture: ${organism} — pan-resistant profile. No susceptible oral agents. Escalate to MD for admission planning.`,
     ],
   };
   return rnd(T[caseType==="pyelo"?"pyelo":caseType==="mdro"?"mdro":caseType==="discrepancy"?"discrepancy":"cleared"]);
 }
 
 function generatePatients(count) {
+  // ─── NEW DISTRIBUTION: 50% cleared / 30% discrepancy / 12% pyelo / 8% mdro ───
   const typeMap = Array.from({length:count},()=>{
-    const r=Math.random(); return r<.50?"cleared":r<.75?"discrepancy":r<.90?"pyelo":"mdro";
+    const r=Math.random();
+    return r<.50?"cleared":r<.80?"discrepancy":r<.92?"pyelo":"mdro";
   });
-  const orgPool = [
-    ...Array(18).fill("E. coli"), ...Array(8).fill("Klebsiella pneumoniae"),
-    ...Array(4).fill("Proteus mirabilis"), ...Array(4).fill("Enterococcus faecalis"),
-    ...Array(3).fill("Staphylococcus saprophyticus"), ...Array(3).fill("Enterobacter cloacae"),
-    ...Array(5).fill("MRSA"), ...Array(4).fill("VRE (E. faecium)"),
-    ...Array(6).fill("ESBL E. coli"), ...Array(5).fill("ESBL Klebsiella"),
-    ...Array(3).fill("CRE Klebsiella"), ...Array(4).fill("Pseudomonas aeruginosa"), ...Array(3).fill("MDR Pseudomonas"),
-  ];
+
   const usedNames = new Set();
   return typeMap.map((caseType,i) => {
     let organism;
-    if(caseType==="mdro") organism=rnd(["MRSA","VRE (E. faecium)","ESBL E. coli","ESBL Klebsiella","CRE Klebsiella","MDR Pseudomonas"]);
+    if(caseType==="mdro")       organism=rnd(["MRSA","VRE (E. faecium)","ESBL E. coli","ESBL Klebsiella","CRE Klebsiella","MDR Pseudomonas"]);
     else if(caseType==="pyelo") organism=rnd(["E. coli","Klebsiella pneumoniae","Proteus mirabilis","ESBL E. coli","Pseudomonas aeruginosa"]);
-    else organism=rnd(orgPool);
+    else if(caseType==="discrepancy") organism=rnd(NON_MDRO_ORGS); // ← guaranteed non-MDRO
+    else                        organism=rnd(GENERAL_POOL);
 
     const oMeta = ORGANISM_META[organism]||{gram:"Unknown",isMDRO:false};
     const susceptibilities = buildSusceptibilities(organism);
-    const sMap = {}; susceptibilities.forEach(s=>{ sMap[s.drug]=ANTIBIOGRAMS.stanford.organisms[organism]?.[s.drug]||0; });
+    const abxData = ANTIBIOGRAMS.stanford.organisms[organism]||{};
     const isMDRO = caseType==="mdro"||oMeta.isMDRO;
     const isDiscrepancy = caseType==="discrepancy";
     const isPyelo = caseType==="pyelo";
-    const abxData = ANTIBIOGRAMS.stanford.organisms[organism]||{};
+
     const activeDrug = (() => {
       const cands = EMPIRIC_FOR[organism]||["TMP-SMX","Ciprofloxacin"];
-      if(!isDiscrepancy&&!isPyelo&&!isMDRO){ const g=cands.filter(d=>(abxData[d]||0)>=70); return g[0]||cands[0]; }
+      if(!isDiscrepancy&&!isPyelo&&!isMDRO){
+        const g=cands.filter(d=>(abxData[d]||0)>=70); return g[0]||cands[0];
+      }
       const b=cands.filter(d=>(abxData[d]||0)<50); return b[0]||cands[cands.length-1];
     })();
 
     const age=rndInt(18,92), sex=Math.random()>.35?"F":"M";
-    let fname,lname,key; do{ fname=rnd(FIRST_NAMES);lname=rnd(LAST_NAMES);key=fname+lname; }while(usedNames.has(key)); usedNames.add(key);
+    let fname,lname,key;
+    do{ fname=rnd(FIRST_NAMES);lname=rnd(LAST_NAMES);key=fname+lname; }while(usedNames.has(key));
+    usedNames.add(key);
 
     const numAllergies=Math.random()<.5?0:Math.random()<.6?1:2;
     const allergies=[]; const aPool=[...ALLERGIES_POOL];
@@ -270,6 +287,7 @@ function generatePatients(count) {
     const finalizedAt = new Date(collectedAt.getTime()+rndInt(24,48)*3600000);
     const encounterDate = new Date(collectedAt.getTime()-rndInt(0,12)*3600000).toISOString().slice(0,10);
     const isDischarge = Math.random()<.72;
+    const phone=`(${rndInt(415,916)}) ${rndInt(200,999)}-${String(rndInt(1000,9999))}`;
 
     let status="cleared", escalateReasons=[];
     const activePct = abxData[activeDrug]||0;
@@ -292,8 +310,8 @@ function generatePatients(count) {
     const ua={
       color:rnd(["Yellow","Dark yellow","Amber","Cloudy yellow"]),
       clarity:rnd(["Cloudy","Turbid","Hazy"]),
-      wbc:(isPyelo||isMDRO||isDiscrepancy)?rnd([">100","50-100","25-50"])+"cells/hpf":rnd(["10-25","5-10",">100"])+"cells/hpf",
-      rbc:rnd(["0-2","2-5","5-10"])+"cells/hpf",
+      wbc:(isPyelo||isMDRO||isDiscrepancy)?rnd([">100","50-100","25-50"])+" cells/hpf":rnd(["10-25","5-10",">100"])+" cells/hpf",
+      rbc:rnd(["0-2","2-5","5-10"])+" cells/hpf",
       bacteria:(isPyelo||isMDRO||isDiscrepancy)?rnd(["Many","Moderate"]):rnd(["Many","Moderate","Few"]),
       nitrite:(organism.includes("Enterococcus")||organism.includes("MRSA")||organism.includes("VRE"))?"-":rnd(["+","+","+"," -"]),
       leukocyteEsterase:(isPyelo||isMDRO)?rnd(["3+","3+","2+"]):rnd(["2+","3+","1+"]),
@@ -302,9 +320,6 @@ function generatePatients(count) {
       specificGravity:`1.0${rndInt(10,30)}`,
       glucose:"Negative", protein:rnd(["Negative","Trace"]),
     };
-
-    const areaCode=rndInt(415,916);
-    const phone=`(${areaCode}) ${rndInt(200,999)}-${String(rndInt(1000,9999))}`;
 
     return {
       id:seededId(i), mrn:`MRN${String(2000000+i*37+13).slice(0,7)}`,
@@ -372,25 +387,45 @@ function analyzePatient(patient, institution) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   SHARED UI
+   SHARED UI ATOMS
 ══════════════════════════════════════════════════════════ */
 const STATUS_CFG = {
-  cleared:           { bg:"bg-green-100", text:"text-green-800", border:"border-green-300", bar:"bg-green-500", label:"Cleared" },
-  discrepancy:       { bg:"bg-red-100",   text:"text-red-800",   border:"border-red-300",   bar:"bg-red-500",   label:"Action Required" },
-  escalate:          { bg:"bg-orange-100",text:"text-orange-800",border:"border-orange-300",bar:"bg-orange-500",label:"Escalate to MD" },
-  pharmacy:          { bg:"bg-teal-100",  text:"text-teal-800",  border:"border-teal-300",  bar:"bg-teal-500",  label:"Pharmacy Review" },
-  pending:           { bg:"bg-gray-100",  text:"text-gray-600",  border:"border-gray-300",  bar:"bg-gray-400",  label:"Pending Culture" },
-  reviewed:          { bg:"bg-blue-100",  text:"text-blue-800",  border:"border-blue-300",  bar:"bg-blue-500",  label:"Reviewed" },
+  cleared:    { bg:"bg-green-100",  text:"text-green-800",  border:"border-green-300",  bar:"border-l-green-500",  label:"Cleared" },
+  discrepancy:{ bg:"bg-red-100",    text:"text-red-800",    border:"border-red-300",    bar:"border-l-red-500",    label:"Action Required" },
+  escalate:   { bg:"bg-orange-100", text:"text-orange-800", border:"border-orange-300", bar:"border-l-orange-500", label:"Escalate to MD" },
+  pharmacy:   { bg:"bg-teal-100",   text:"text-teal-800",   border:"border-teal-300",   bar:"border-l-teal-500",   label:"Pharmacy Review" },
+  pending:    { bg:"bg-gray-100",   text:"text-gray-600",   border:"border-gray-300",   bar:"border-l-gray-400",   label:"Pending Culture" },
+  reviewed:   { bg:"bg-blue-100",   text:"text-blue-800",   border:"border-blue-300",   bar:"border-l-blue-400",   label:"Reviewed" },
 };
 
 const StatusBadge = ({ status, small }) => {
   const c = STATUS_CFG[status]||STATUS_CFG.pending;
-  return <span className={`inline-flex items-center rounded ${c.bg} ${c.text} border ${c.border} font-semibold ${small?"text-xs px-1.5 py-0.5":"text-xs px-2 py-1"}`}>{c.label}</span>;
+  return <span className={`inline-flex items-center rounded font-semibold ${c.bg} ${c.text} border ${c.border} ${small?"text-xs px-1.5 py-0.5":"text-xs px-2 py-1"}`}>{c.label}</span>;
 };
 const AllergyChip = ({ al }) => {
   const col = al.severity==="severe/anaphylaxis"?"bg-red-100 text-red-800 border-red-300":al.severity==="moderate"?"bg-orange-100 text-orange-800 border-orange-300":"bg-yellow-100 text-yellow-800 border-yellow-300";
-  return <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border font-medium ${col}`}>⚠ {al.substance}</span>;
+  return <span className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border font-medium ${col}`}>⚠ {al.substance}</span>;
 };
+
+/* ═══════════════════════════════════════════════════════
+   ACCORDION SECTION
+══════════════════════════════════════════════════════════ */
+function AccordionSection({ title, badge, expanded, onToggle, children }) {
+  return (
+    <div className="border border-[#BBDEFB] rounded-lg overflow-hidden mb-3">
+      <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-2.5 bg-epic-sectionBg hover:bg-[#D6EAF8] transition-colors text-left">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-semibold text-epic-dark">{title}</span>
+          {badge&&<span className="text-xs px-2 py-0.5 rounded bg-[#BBDEFB] text-epic-dark font-medium truncate max-w-[140px]">{badge}</span>}
+        </div>
+        <svg className={`w-4 h-4 text-epic-dark flex-shrink-0 ml-2 transition-transform ${expanded?"rotate-180":""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div className="accordion-body" style={{maxHeight:expanded?"2000px":"0"}}>
+        <div className="p-3 sm:p-4">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════
    PATIENT CARD
@@ -400,102 +435,101 @@ function PatientCard({ patient, isSelected, onClick }) {
     ? (patient.actionTaken.type==="changed"?"cleared":patient.actionTaken.type==="pharmacy"?"pharmacy":"escalate")
     : patient.status;
   const cfg = STATUS_CFG[effStatus]||STATUS_CFG.pending;
-
   return (
-    <div onClick={onClick} className={`border-l-4 ${cfg.bar.replace("bg-","border-l-")} bg-white mx-2 mb-1.5 rounded-r-lg cursor-pointer transition-all shadow-sm hover:bg-epic-rowHover ${isSelected?"ring-2 ring-[#1976D2] ring-inset shadow-md bg-epic-rowSel":""}`}>
+    <div onClick={onClick} className={`border-l-4 ${cfg.bar} bg-white mx-2 mb-1.5 rounded-r-lg cursor-pointer transition-all shadow-sm hover:bg-epic-rowHover active:bg-epic-rowSel ${isSelected?"ring-2 ring-[#1976D2] ring-inset bg-epic-rowSel":""}`}>
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="font-semibold text-gray-900 text-sm truncate">{patient.name.last}, {patient.name.first}</div>
             <div className="text-xs text-gray-500 mt-0.5">{patient.age}yo {patient.sex} · {patient.mrn}</div>
-            <div className="text-xs text-gray-500">
-              {patient.isDischarge
-                ? <span className="text-gray-400">📤 DC'd {fmtDate(patient.encounterDate)}</span>
-                : <span>🏥 {patient.unit}</span>}
-              <span className="mx-1">·</span>{patient.encounterMD.replace("Dr. ","")}
+            <div className="text-xs text-gray-400 truncate">
+              {patient.isDischarge?`📤 DC'd ${fmtDate(patient.encounterDate)}`:`🏥 ${patient.unit}`}
+              {" · "}{patient.encounterMD.replace("Dr. ","")}
             </div>
           </div>
-          <StatusBadge status={effStatus} small />
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <StatusBadge status={effStatus} small />
+            {/* Mobile tap arrow — hint only on mobile */}
+            <span className="md:hidden text-gray-300 text-xs">›</span>
+          </div>
         </div>
         {patient.culture.organism && (
-          <div className="mt-2 text-xs text-gray-700">
-            <span className="font-medium italic">{patient.culture.organism}</span>
+          <div className="mt-1.5 text-xs text-gray-600">
+            <span className="italic">{patient.culture.organism}</span>
             <span className="text-gray-400 mx-1">vs</span>
             <span className={`font-medium ${effStatus==="discrepancy"||effStatus==="escalate"?"text-red-600":""}`}>{patient.activeMedication.drug}</span>
           </div>
         )}
-        {patient.actionTaken && <div className="mt-1.5 text-xs text-[#1976D2] font-medium">✓ {patient.actionTaken.type==="changed"?"Rx Changed":patient.actionTaken.type==="pharmacy"?"Pharmacy Consulted":"Escalated"}</div>}
+        {patient.actionTaken && <div className="mt-1 text-xs text-[#1976D2] font-medium">✓ {patient.actionTaken.type==="changed"?"Rx Changed":patient.actionTaken.type==="pharmacy"?"Pharmacy Consulted":"Escalated"}</div>}
       </div>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════
-   CHANGE RX MODAL
+   MODALS
 ══════════════════════════════════════════════════════════ */
 function ChangeRxModal({ patient, analysis, onConfirm, onClose }) {
   const [selected,setSelected] = useState(analysis.recommendations[0]?.drug||"");
   const [showCallback,setShowCallback] = useState(false);
   const recs = analysis.recommendations;
 
-  const sbarNote = `SITUATION: ${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}. Encounter: ${fmtDate(patient.encounterDate)}.
+  const sbar = `SITUATION: ${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}. Encounter: ${fmtDate(patient.encounterDate)}.
 
-BACKGROUND: Empiric ${patient.activeMedication.drug} prescribed for UTI. Culture finalized: ${patient.culture.organism} (${patient.culture.colonyCount}) — RESISTANT to current regimen. Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.
+BACKGROUND: Empiric ${patient.activeMedication.drug} prescribed for UTI. Culture: ${patient.culture.organism} (${patient.culture.colonyCount}) — RESISTANT. Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.
 
-ASSESSMENT: Culture-guided therapy change indicated. ${patient.culture.organism} susceptible to ${selected||"[select drug]"} per institutional antibiogram. Patient afebrile, no upper tract symptoms — appropriate for RN-initiated protocol change.
+ASSESSMENT: Culture-guided change indicated. ${patient.culture.organism} susceptible to ${selected||"[select]"} per antibiogram. Afebrile, no upper tract symptoms — RN protocol change appropriate.
 
-RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Initiate ${selected||"[select drug]"} ${(DRUG_META[selected]||{}).doseStd||""}. Per RN antibiogram protocol. ${patient.isDischarge?"Patient discharged — callback required to communicate change.":""}`;
+RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Start ${selected||"[select]"} ${(DRUG_META[selected]||{}).doseStd||""}. ${patient.isDischarge?"Patient discharged — callback required.":""}`;
 
-  if(showCallback){
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
-          <div className="px-6 py-4 border-b bg-green-50 flex items-center justify-between">
-            <div><div className="font-bold text-green-900">📞 Patient Callback — Rx Change</div><div className="text-xs text-green-700 mt-0.5">Call to communicate antibiotic change</div></div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+  if(showCallback) return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+        <div className="px-5 py-4 border-b bg-green-50 flex items-center justify-between">
+          <div><div className="font-bold text-green-900">📞 Patient Callback</div><div className="text-xs text-green-700 mt-0.5">Communicate antibiotic change</div></div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl p-1">&times;</button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div><div className="text-xs text-gray-500">Patient</div><div className="font-semibold text-sm">{patient.name.first} {patient.name.last}</div></div>
+            <div className="text-right"><div className="text-xs text-gray-500">Phone</div><div className="font-semibold text-[#1976D2] text-sm">{patient.phone}</div></div>
           </div>
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-              <div><div className="text-xs text-gray-500">Patient</div><div className="font-semibold">{patient.name.first} {patient.name.last}</div></div>
-              <div className="text-right"><div className="text-xs text-gray-500">Phone</div><div className="font-semibold text-[#1976D2]">{patient.phone}</div></div>
-            </div>
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-900 leading-relaxed">
-              <div className="font-semibold text-blue-800 mb-1.5">Suggested Script:</div>
-              <p><em>"Hi, may I speak with {patient.name.first}? This is [RN name] calling from [institution] regarding your urine culture result from your visit on {fmtDate(patient.encounterDate)}. Your culture showed a bacteria resistant to the antibiotic you were prescribed. We're updating your prescription to <strong>{selected}</strong> — {(DRUG_META[selected]||{}).doseStd}. Please stop the {patient.activeMedication.drug} and start the new prescription. Do you have any questions?"</em></p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={()=>onConfirm(selected,sbarNote,true)} className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg">✓ Mark Called & Complete</button>
-              <button onClick={()=>onConfirm(selected,sbarNote,false)} className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50">Schedule Later</button>
-            </div>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-900 leading-relaxed">
+            <div className="font-semibold text-blue-800 mb-1 text-xs uppercase tracking-wide">Suggested Script</div>
+            <p className="text-xs sm:text-sm"><em>"Hi, may I speak with {patient.name.first}? This is [RN name] calling from [institution]. Your urine culture from {fmtDate(patient.encounterDate)} showed a bacteria resistant to your current antibiotic. We're updating your prescription to <strong>{selected}</strong> — {(DRUG_META[selected]||{}).doseStd}. Please stop the {patient.activeMedication.drug} and start the new prescription."</em></p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button onClick={()=>onConfirm(selected,sbar,true)} className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg">✓ Mark Called & Complete</button>
+            <button onClick={()=>onConfirm(selected,sbar,false)} className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50">Schedule Later</button>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-bold text-gray-900">Change Antibiotic — RN Protocol Order</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
+          <h2 className="text-base font-bold text-gray-900">Change Antibiotic — Protocol Order</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl p-1">&times;</button>
         </div>
-        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
-            <span className="text-red-600 font-bold text-lg">✕</span>
-            <div><div className="font-semibold text-red-800">Current (Resistant):</div>
-            <div className="text-red-700 line-through">{patient.activeMedication.drug} — Culture: <strong>RESISTANT</strong></div></div>
+            <span className="text-red-600 font-bold text-lg flex-shrink-0">✕</span>
+            <div><div className="font-semibold text-red-800 text-xs">Current (Resistant):</div>
+            <div className="text-red-700 line-through text-sm">{patient.activeMedication.drug} — RESISTANT</div></div>
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-700 mb-2">Select Replacement Antibiotic <span className="text-gray-400 font-normal">(narrowest → broadest)</span></div>
+            <div className="text-sm font-semibold text-gray-700 mb-2">Select Replacement <span className="text-gray-400 font-normal text-xs">(narrowest → broadest)</span></div>
             <div className="space-y-2">
               {recs.map(rec=>(
                 <label key={rec.drug} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected===rec.drug?"border-[#1976D2] bg-epic-rowHover":"border-gray-200 hover:border-gray-300"}`}>
-                  <input type="radio" name="abx" value={rec.drug} checked={selected===rec.drug} onChange={()=>setSelected(rec.drug)} className="mt-0.5"/>
+                  <input type="radio" name="abx" value={rec.drug} checked={selected===rec.drug} onChange={()=>setSelected(rec.drug)} className="mt-0.5 flex-shrink-0"/>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900">{rec.drug}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded font-bold ${rec.susceptPct>=90?"bg-green-100 text-green-800":rec.susceptPct>=75?"bg-blue-100 text-blue-800":"bg-yellow-100 text-yellow-800"}`}>{rec.susceptPct}% S</span>
+                      <span className="font-semibold text-gray-900 text-sm">{rec.drug}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${rec.susceptPct>=90?"bg-green-100 text-green-800":rec.susceptPct>=75?"bg-blue-100 text-blue-800":"bg-yellow-100 text-yellow-800"}`}>{rec.susceptPct}%S</span>
                       <span className={`text-xs px-1.5 py-0.5 rounded ${rec.route==="IV"?"bg-purple-100 text-purple-700":"bg-gray-100 text-gray-600"}`}>{rec.route}</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">{rec.dose}</div>
@@ -506,17 +540,17 @@ RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Initiate ${selecte
             </div>
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-700 mb-2">Auto-Generated SBAR Note:</div>
-            <pre className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap font-mono leading-relaxed text-gray-700">{sbarNote}</pre>
+            <div className="text-sm font-semibold text-gray-700 mb-1.5">Auto-Generated SBAR Note</div>
+            <pre className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap font-mono leading-relaxed text-gray-700">{sbar}</pre>
           </div>
         </div>
-        <div className="px-6 py-4 border-t flex items-center justify-between gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg">Cancel</button>
-          <div className="flex gap-2">
+        <div className="px-5 py-3 border-t flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg">Cancel</button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {patient.isDischarge&&selected&&(
-              <button onClick={()=>setShowCallback(true)} className="px-4 py-2 text-sm font-semibold border border-green-500 text-green-700 hover:bg-green-50 rounded-lg">📞 Confirm + Call Patient</button>
+              <button onClick={()=>setShowCallback(true)} className="w-full sm:w-auto px-4 py-2 text-sm font-semibold border border-green-500 text-green-700 hover:bg-green-50 rounded-lg">📞 Confirm + Call Patient</button>
             )}
-            <button onClick={()=>onConfirm(selected,sbarNote,false)} disabled={!selected} className="px-6 py-2 text-sm font-semibold bg-[#1976D2] hover:bg-[#1565C0] text-white rounded-lg disabled:opacity-40">
+            <button onClick={()=>onConfirm(selected,sbar,false)} disabled={!selected} className="w-full sm:w-auto px-5 py-2 text-sm font-semibold bg-[#1976D2] hover:bg-[#1565C0] text-white rounded-lg disabled:opacity-40">
               ✓ Confirm Rx Change
             </button>
           </div>
@@ -526,83 +560,72 @@ RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Initiate ${selecte
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   PHARMACY MODAL
-══════════════════════════════════════════════════════════ */
 function PharmacyModal({ patient, analysis, onConfirm, onClose }) {
   const recText = analysis.recommendations.slice(0,3).map(r=>`${r.drug} (${r.susceptPct}%S, ${r.route})`).join("; ")||"Limited options per antibiogram";
-  const [note,setNote]=useState(`Requesting pharmacist review for antibiotic selection in ${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}.
+  const [note,setNote]=useState(`Requesting pharmacist review for ${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}.
 
-Urine culture: ${patient.culture.organism} (${patient.culture.colonyCount}) — RESISTANT to current ${patient.activeMedication.drug}.
+Culture: ${patient.culture.organism} (${patient.culture.colonyCount}) — RESISTANT to current ${patient.activeMedication.drug}.
 
-AI-recommended alternatives per ${ANTIBIOGRAMS.stanford.name} antibiogram: ${recText}.
+AI-recommended alternatives per ${(ANTIBIOGRAMS.stanford.name)} antibiogram: ${recText}.
 
-Please advise on: final antibiotic selection, dosing, renal function adjustment if needed, and formulary availability. Patient is ${patient.isDischarge?"discharged — callback coordination may be needed":"currently admitted to "+patient.unit}.
+Please advise on antibiotic selection, dosing, renal adjustment, and formulary availability. ${patient.isDischarge?"Patient discharged — callback coordination may be needed.":"Patient currently admitted to "+patient.unit+"."}
 
 Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.`);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-teal-50">
-          <div><div className="font-bold text-teal-900 text-lg">🔬 Pharmacy Consult Request</div><div className="text-xs text-teal-700 mt-0.5">RN requesting pharmacist guidance on antibiotic selection</div></div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-teal-50 flex-shrink-0">
+          <div><div className="font-bold text-teal-900">🔬 Pharmacy Consult</div><div className="text-xs text-teal-700 mt-0.5">RN requesting pharmacist guidance</div></div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl p-1">&times;</button>
         </div>
-        <div className="overflow-y-auto flex-1 p-6 space-y-4">
-          <div className="grid grid-cols-3 gap-3 text-sm">
+        <div className="overflow-y-auto flex-1 p-5 space-y-3">
+          <div className="grid grid-cols-3 gap-2">
             {[["Patient",`${patient.name.last}, ${patient.name.first}`],["MRN",patient.mrn],["Organism",patient.culture.organism]].map(([k,v])=>(
-              <div key={k} className="bg-gray-50 rounded-lg p-2.5 border"><div className="text-xs text-gray-400 uppercase tracking-wide">{k}</div><div className="font-semibold mt-0.5 text-xs">{v}</div></div>
+              <div key={k} className="bg-gray-50 rounded-lg p-2 border"><div className="text-xs text-gray-400 uppercase tracking-wide">{k}</div><div className="font-semibold text-xs mt-0.5 truncate">{v}</div></div>
             ))}
           </div>
-          <div>
-            <div className="text-sm font-semibold text-gray-700 mb-1.5">Consult Message <span className="text-gray-400 font-normal">(editable)</span></div>
-            <textarea className="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" rows={9} value={note} onChange={e=>setNote(e.target.value)}/>
-          </div>
+          <textarea className="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" rows={9} value={note} onChange={e=>setNote(e.target.value)}/>
         </div>
-        <div className="px-6 py-4 border-t flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg">Cancel</button>
-          <button onClick={()=>onConfirm(note)} className="px-6 py-2 text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg">📤 Send to Pharmacy</button>
+        <div className="px-5 py-3 border-t flex-shrink-0 flex flex-col sm:flex-row justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg">Cancel</button>
+          <button onClick={()=>onConfirm(note)} className="px-5 py-2 text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg">📤 Send to Pharmacy</button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   ESCALATE MODAL
-══════════════════════════════════════════════════════════ */
 function EscalateModal({ patient, analysis, onConfirm, onClose }) {
   const recNames=analysis.recommendations.slice(0,3).map(r=>`${r.drug} (${r.susceptPct}%S, ${r.route})`).join("; ")||"Limited options per antibiogram";
   const isPyeloOrAdmit=analysis.isPyelo||analysis.requiresAdmission;
-  const encCtx=`Encounter ${fmtDate(patient.encounterDate)} with ${patient.encounterMD}${patient.isDischarge?" — patient discharged, callback required":" — patient currently "+patient.unit}`;
+  const encCtx=`Encounter ${fmtDate(patient.encounterDate)} with ${patient.encounterMD}${patient.isDischarge?" — patient discharged, callback required":" — patient in "+patient.unit}`;
   const [sbar,setSbar]=useState({
-    situation:`${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}. ${encCtx}. Urine culture requires MD review.`,
-    background:`Empiric ${patient.activeMedication.drug} prescribed for UTI. Culture: ${patient.culture.organism} (${patient.culture.colonyCount}), Gram stain: ${patient.culture.gramStain}. Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.`,
+    situation:`${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}. ${encCtx}.`,
+    background:`Empiric ${patient.activeMedication.drug} for UTI. Culture: ${patient.culture.organism} (${patient.culture.colonyCount}), Gram stain: ${patient.culture.gramStain}. Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.`,
     assessment:`Escalation required: ${analysis.escalateReasons.join("; ")}. ${analysis.requiresAdmission?"No susceptible oral antibiotics — IV therapy required.":""} ${analysis.isPyelo?"Clinical context consistent with pyelonephritis.":""}`,
     recommendation:`${isPyeloOrAdmit?"Patient callback recommended — likely requires hospital admission for IV antibiotic therapy. ":""}Options per antibiogram: ${recNames}. ${analysis.isMDRO?"ID consult strongly recommended.":""}`,
   });
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className={`flex items-center justify-between px-6 py-4 border-b ${isPyeloOrAdmit?"bg-amber-50":""}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+        <div className={`flex items-center justify-between px-5 py-4 border-b flex-shrink-0 ${isPyeloOrAdmit?"bg-amber-50":""}`}>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Escalate to MD</h2>
-            {isPyeloOrAdmit&&<p className="text-sm text-amber-700 font-medium mt-0.5">⚠ Patient callback likely required — admission recommended</p>}
+            <h2 className="text-base font-bold text-gray-900">Escalate to MD</h2>
+            {isPyeloOrAdmit&&<p className="text-xs text-amber-700 font-medium mt-0.5">⚠ Patient callback likely required — admission recommended</p>}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl p-1">&times;</button>
         </div>
-        <div className="overflow-y-auto flex-1 p-6 space-y-4">
+        <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {analysis.escalateReasons.length>0&&(
             <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="text-sm font-semibold text-orange-800 mb-1">Escalation Triggers:</div>
-              <ul className="text-sm text-orange-700 space-y-0.5">{analysis.escalateReasons.map((r,i)=><li key={i} className="flex gap-2"><span>•</span>{r}</li>)}</ul>
+              <div className="text-xs font-semibold text-orange-800 mb-1">Escalation Triggers:</div>
+              <ul className="text-xs text-orange-700 space-y-0.5">{analysis.escalateReasons.map((r,i)=><li key={i} className="flex gap-2"><span>•</span>{r}</li>)}</ul>
             </div>
           )}
           {patient.isDischarge&&(
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
               <div className="text-sm text-blue-800"><span className="font-semibold">📞 Patient callback:</span> {patient.phone}</div>
-              <button onClick={()=>navigator.clipboard?.writeText(patient.phone)} className="text-xs px-2 py-1 border border-blue-300 rounded text-blue-700 hover:bg-blue-100">Copy</button>
+              <button onClick={()=>navigator.clipboard?.writeText(patient.phone)} className="text-xs px-2 py-1 border border-blue-300 rounded text-blue-700 hover:bg-blue-100 flex-shrink-0">Copy</button>
             </div>
           )}
           {[{k:"situation",l:"SITUATION"},{k:"background",l:"BACKGROUND"},{k:"assessment",l:"ASSESSMENT"},{k:"recommendation",l:"RECOMMENDATION"}].map(({k,l})=>(
@@ -612,32 +635,12 @@ function EscalateModal({ patient, analysis, onConfirm, onClose }) {
             </div>
           ))}
         </div>
-        <div className="px-6 py-4 border-t flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg">Cancel</button>
-          <button onClick={()=>onConfirm(Object.values(sbar).join("\n\n"))} className={`px-6 py-2 text-sm font-semibold text-white rounded-lg ${isPyeloOrAdmit?"bg-amber-600 hover:bg-amber-700":"bg-orange-600 hover:bg-orange-700"}`}>
+        <div className="px-5 py-3 border-t flex-shrink-0 flex flex-col sm:flex-row justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg">Cancel</button>
+          <button onClick={()=>onConfirm(Object.values(sbar).join("\n\n"))} className={`px-5 py-2 text-sm font-semibold text-white rounded-lg ${isPyeloOrAdmit?"bg-amber-600 hover:bg-amber-700":"bg-orange-600 hover:bg-orange-700"}`}>
             📞 Send Escalation to MD
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   ACCORDION SECTION
-══════════════════════════════════════════════════════════ */
-function AccordionSection({ title, badge, expanded, onToggle, children }) {
-  return (
-    <div className="border border-[#BBDEFB] rounded-lg overflow-hidden mb-3">
-      <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-2.5 bg-epic-sectionBg hover:bg-[#D6EAF8] transition-colors text-left">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-epic-dark">{title}</span>
-          {badge&&<span className="text-xs px-2 py-0.5 rounded bg-[#BBDEFB] text-epic-dark font-medium">{badge}</span>}
-        </div>
-        <svg className={`w-4 h-4 text-epic-dark transition-transform ${expanded?"rotate-180":""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
-      </button>
-      <div className="accordion-body" style={{maxHeight:expanded?"2000px":"0"}}>
-        <div className="p-4">{children}</div>
       </div>
     </div>
   );
@@ -648,40 +651,35 @@ function AccordionSection({ title, badge, expanded, onToggle, children }) {
 ══════════════════════════════════════════════════════════ */
 function PatientWorkspace({ patient, institution, onAction }) {
   const analysis = useMemo(()=>analyzePatient(patient,institution),[patient,institution]);
-
-  // canChangeRx: use original stored status + stored escalateReasons (not dynamic analysis ones)
   const canChangeRx = patient.status==="discrepancy"
     && !patient.escalateReasons.some(r=>r.includes("MDRO")||r.includes("IV therapy")||r.includes("Allergy conflict")||r.includes("Pyelonephritis"))
     && !patient.actionTaken;
   const mustEscalate = patient.status==="escalate"||analysis.requiresAdmission||analysis.isPyelo||analysis.isMDRO;
-
   const effStatus = patient.actionTaken
     ? (patient.actionTaken.type==="changed"?"cleared":patient.actionTaken.type==="pharmacy"?"pharmacy":"escalate")
     : patient.status;
-
   const [expanded,setExpanded]=useState({ meds:true, ua:patient.status!=="cleared", culture:true });
-  const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
-
   const [showChangeRx,setShowChangeRx]=useState(false);
   const [showEscalate,setShowEscalate]=useState(false);
   const [showPharmacy,setShowPharmacy]=useState(false);
+  const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
 
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Patient Header */}
-      <div className="px-5 py-3 border-b flex-shrink-0" style={{background:"#1976D2"}}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-white leading-tight">{patient.name.last}, {patient.name.first}</h2>
+      <div className="px-4 sm:px-5 py-3 border-b flex-shrink-0" style={{background:"#1976D2"}}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-white leading-tight truncate">{patient.name.last}, {patient.name.first}</h2>
             <div className="text-blue-100 text-xs mt-0.5">{patient.age}yo {patient.sex==="F"?"Female":"Male"} · DOB {fmtDate(patient.dob)} · {patient.mrn}</div>
-            <div className="text-blue-200 text-xs mt-0.5 flex items-center gap-2">
-              <span>Encounter: {fmtDate(patient.encounterDate)} · {patient.encounterMD}</span>
+            <div className="text-blue-200 text-xs mt-0.5 flex flex-wrap items-center gap-1">
+              <span className="truncate">Enc: {fmtDate(patient.encounterDate)} · {patient.encounterMD.replace("Dr. ","Dr. ")}</span>
               {patient.isDischarge
-                ? <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs">📤 Discharged</span>
-                : <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs">🏥 {patient.unit}</span>}
+                ? <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs flex-shrink-0">📤 DC'd</span>
+                : <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs flex-shrink-0">🏥 {patient.unit}</span>}
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <StatusBadge status={effStatus}/>
             {patient.allergies.length>0
               ? <div className="flex flex-wrap gap-1 justify-end">{patient.allergies.map((a,i)=><AllergyChip key={i} al={a}/>)}</div>
@@ -690,108 +688,111 @@ function PatientWorkspace({ patient, institution, onAction }) {
         </div>
       </div>
 
-      {/* Scrollable accordion body */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
+      {/* Scrollable accordion content */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-3 sm:p-4 pb-2">
 
-        {/* ── Meds & Context ── */}
+        {/* Meds */}
         <AccordionSection title="Epic Meds & Clinical Context" expanded={expanded.meds} onToggle={()=>toggle("meds")}>
           <div className="rounded-lg border border-gray-200 overflow-hidden mb-3">
             <div className="bg-epic-sectionBg px-3 py-2 border-b flex items-center gap-2">
               <span className="text-xs font-semibold text-epic-dark">Active Medications</span>
               <span className="text-xs bg-[#BBDEFB] text-epic-dark px-1.5 py-0.5 rounded">EPIC Live</span>
             </div>
-            <table className="w-full text-sm">
-              <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
-                <tr><th className="px-3 py-2 text-left">Medication</th><th className="px-3 py-2 text-left">Dose / Route</th><th className="px-3 py-2 text-left">Indication</th><th className="px-3 py-2 text-left">Ordered</th></tr>
-              </thead>
-              <tbody>
-                <tr className={`border-t ${effStatus==="discrepancy"||effStatus==="escalate"?"bg-red-50":effStatus==="cleared"?"bg-green-50":""}`}>
-                  <td className="px-3 py-2.5 font-semibold">{patient.activeMedication.drug}</td>
-                  <td className="px-3 py-2.5 text-gray-600">{patient.activeMedication.dose} {patient.activeMedication.route}</td>
-                  <td className="px-3 py-2.5 text-gray-500">{patient.activeMedication.indication}</td>
-                  <td className="px-3 py-2.5 text-gray-400 text-xs">{fmtDateTime(patient.activeMedication.prescribedAt)}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[320px]">
+                <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                  <tr><th className="px-3 py-2 text-left">Medication</th><th className="px-3 py-2 text-left">Dose/Route</th><th className="px-3 py-2 text-left hidden sm:table-cell">Ordered</th></tr>
+                </thead>
+                <tbody>
+                  <tr className={`border-t ${effStatus==="discrepancy"||effStatus==="escalate"?"bg-red-50":effStatus==="cleared"?"bg-green-50":""}`}>
+                    <td className="px-3 py-2.5 font-semibold text-sm">{patient.activeMedication.drug}</td>
+                    <td className="px-3 py-2.5 text-gray-600 text-xs">{patient.activeMedication.dose} {patient.activeMedication.route}</td>
+                    <td className="px-3 py-2.5 text-gray-400 text-xs hidden sm:table-cell">{fmtDateTime(patient.activeMedication.prescribedAt)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div className="p-3 bg-blue-50 border border-[#BBDEFB] rounded-lg text-sm text-blue-900 leading-relaxed">
-            <div className="text-xs font-semibold text-epic-dark mb-1.5 uppercase tracking-wide">Workup Summary</div>
-            {patient.clinicalContext}
+            <div className="text-xs font-semibold text-epic-dark mb-1 uppercase tracking-wide">Workup Summary</div>
+            <p className="text-xs sm:text-sm">{patient.clinicalContext}</p>
           </div>
         </AccordionSection>
 
-        {/* ── Urinalysis ── */}
+        {/* UA */}
         <AccordionSection title="Urinalysis" badge={patient.urinalysis.leukocyteEsterase+" LE"} expanded={expanded.ua} onToggle={()=>toggle("ua")}>
-          <div className="grid grid-cols-2 gap-px bg-gray-100 border border-gray-200 rounded-lg overflow-hidden text-sm">
-            {[
-              ["Color",patient.urinalysis.color],["Clarity",patient.urinalysis.clarity],
-              ["pH",patient.urinalysis.pH],["Specific Gravity",patient.urinalysis.specificGravity],
-              ["WBC",patient.urinalysis.wbc],["RBC",patient.urinalysis.rbc],
-              ["Bacteria",patient.urinalysis.bacteria],["Nitrite",patient.urinalysis.nitrite],
-              ["Leukocyte Esterase",patient.urinalysis.leukocyteEsterase],["Squamous Epithelial Cells",patient.urinalysis.squamousEpithelialCells],
-              ["Glucose",patient.urinalysis.glucose],["Protein",patient.urinalysis.protein],
-            ].map(([label,val])=>(
-              <div key={label} className="bg-white px-3 py-2 flex justify-between items-center">
-                <span className="text-xs text-gray-500">{label}</span>
-                <span className={`text-sm font-medium ${(val==="Many"||val==="3+"||val==="+"||val?.includes(">100"))?"text-red-700":""}`}>{val}</span>
+          <div className="grid grid-cols-2 gap-px bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+            {[["Color",patient.urinalysis.color],["Clarity",patient.urinalysis.clarity],["pH",patient.urinalysis.pH],["Specific Gravity",patient.urinalysis.specificGravity],["WBC",patient.urinalysis.wbc],["RBC",patient.urinalysis.rbc],["Bacteria",patient.urinalysis.bacteria],["Nitrite",patient.urinalysis.nitrite],["Leukocyte Esterase",patient.urinalysis.leukocyteEsterase],["Squamous Cells",patient.urinalysis.squamousEpithelialCells],["Glucose",patient.urinalysis.glucose],["Protein",patient.urinalysis.protein]].map(([label,val])=>(
+              <div key={label} className="bg-white px-3 py-2 flex justify-between items-center gap-2">
+                <span className="text-xs text-gray-500 flex-shrink-0">{label}</span>
+                <span className={`text-xs font-semibold text-right ${(val==="Many"||val==="3+"||val==="+"||val?.includes(">100"))?"text-red-700":""}`}>{val}</span>
               </div>
             ))}
           </div>
-          {analysis.isPyelo&&<div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800"><strong>⚠ Pyelonephritis Flags:</strong> Systemic symptoms detected in workup (fever, flank pain, CVA tenderness). Upper tract involvement likely.</div>}
+          {analysis.isPyelo&&<div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800"><strong>⚠ Pyelonephritis flags:</strong> Systemic symptoms detected (fever, flank pain, CVA tenderness). Upper tract involvement likely.</div>}
         </AccordionSection>
 
-        {/* ── Culture Results ── */}
+        {/* Culture */}
         <AccordionSection title="Culture Results" badge={patient.culture.organism} expanded={expanded.culture} onToggle={()=>toggle("culture")}>
           <div className="grid grid-cols-2 gap-2 mb-3">
             {[["Organism",patient.culture.organism],["Gram Stain",patient.culture.gramStain],["Colony Count",patient.culture.colonyCount],["Specimen",patient.culture.specimenType],["Collected",fmtDateTime(patient.culture.collectedAt)],["Finalized",fmtDateTime(patient.culture.finalizedAt)]].map(([k,v])=>(
-              <div key={k} className="bg-epic-sectionBg rounded-lg p-2.5 border border-[#BBDEFB]">
+              <div key={k} className="bg-epic-sectionBg rounded-lg p-2 border border-[#BBDEFB]">
                 <div className="text-xs text-gray-400 uppercase tracking-wide">{k}</div>
-                <div className={`text-sm font-semibold mt-0.5 ${k==="Organism"?"italic":""}`}>{v}</div>
+                <div className={`text-xs font-semibold mt-0.5 ${k==="Organism"?"italic":""}`}>{v}</div>
               </div>
             ))}
           </div>
           <div className="rounded-lg border border-gray-200 overflow-hidden">
             <div className="bg-epic-sectionBg px-3 py-2 border-b text-xs font-semibold text-epic-dark uppercase tracking-wide">Susceptibility Panel — MIC</div>
-            <table className="w-full text-sm">
-              <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
-                <tr><th className="px-3 py-1.5 text-left">Antibiotic</th><th className="px-3 py-1.5 text-center">MIC</th><th className="px-3 py-1.5 text-center">Result</th><th className="px-3 py-1.5 text-center">Route</th></tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {patient.culture.susceptibilities.map((s,i)=>{
-                  const isActive=s.drug===patient.activeMedication.drug;
-                  const rowBg=isActive?(s.interpretation==="R"?"bg-red-50":s.interpretation==="I"?"bg-yellow-50":"bg-green-50"):"";
-                  const lBorder=isActive?("border-l-4 "+(s.interpretation==="R"?"border-l-red-500":s.interpretation==="I"?"border-l-yellow-500":"border-l-green-500")):"";
-                  return <tr key={i} className={`${rowBg} ${lBorder} ${isActive?"font-semibold":""}`}>
-                    <td className="px-3 py-2">{s.drug}{isActive&&<span className="ml-1.5 text-xs bg-[#BBDEFB] text-epic-dark px-1.5 py-0.5 rounded">Active Rx</span>}</td>
-                    <td className="px-3 py-2 text-center font-mono text-gray-600 text-xs">{s.mic}</td>
-                    <td className="px-3 py-2 text-center"><span className={`px-2 py-0.5 rounded text-xs font-bold ${s.interpretation==="S"?"bg-green-100 text-green-800":s.interpretation==="I"?"bg-yellow-100 text-yellow-800":"bg-red-100 text-red-800"}`}>{s.interpretation==="S"?"Susceptible":s.interpretation==="I"?"Intermediate":"Resistant"}</span></td>
-                    <td className="px-3 py-2 text-center text-xs text-gray-500">{(DRUG_META[s.drug]||{}).route||"PO"}</td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[280px]">
+                <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                  <tr><th className="px-3 py-1.5 text-left">Antibiotic</th><th className="px-3 py-1.5 text-center">MIC</th><th className="px-3 py-1.5 text-center">Result</th><th className="px-3 py-1.5 text-center hidden sm:table-cell">Route</th></tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {patient.culture.susceptibilities.map((s,i)=>{
+                    const isActive=s.drug===patient.activeMedication.drug;
+                    const rowBg=isActive?(s.interpretation==="R"?"bg-red-50":s.interpretation==="I"?"bg-yellow-50":"bg-green-50"):"";
+                    const lBorder=isActive?("border-l-4 "+(s.interpretation==="R"?"border-l-red-500":s.interpretation==="I"?"border-l-yellow-500":"border-l-green-500")):"";
+                    return <tr key={i} className={`${rowBg} ${lBorder} ${isActive?"font-semibold":""}`}>
+                      <td className="px-3 py-2 text-xs">
+                        {s.drug}
+                        {isActive&&<span className="ml-1 text-xs bg-[#BBDEFB] text-epic-dark px-1 py-0.5 rounded">Active</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center font-mono text-gray-600 text-xs">{s.mic}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${s.interpretation==="S"?"bg-green-100 text-green-800":s.interpretation==="I"?"bg-yellow-100 text-yellow-800":"bg-red-100 text-red-800"}`}>
+                          {s.interpretation==="S"?"Susceptible":s.interpretation==="I"?"Intermediate":"Resistant"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center text-xs text-gray-500 hidden sm:table-cell">{(DRUG_META[s.drug]||{}).route||"PO"}</td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </AccordionSection>
       </div>
 
       {/* ── AI Decision Panel (sticky bottom) ── */}
-      <div className={`border-t flex-shrink-0 ${analysis.requiresAdmission?"bg-amber-50 border-amber-200":effStatus==="discrepancy"||effStatus==="escalate"?"bg-red-50 border-red-200":effStatus==="cleared"?"bg-green-50 border-green-200":effStatus==="pharmacy"?"bg-teal-50 border-teal-200":"bg-epic-sectionBg border-[#BBDEFB]"} p-4`}>
+      <div className={`border-t flex-shrink-0 ${analysis.requiresAdmission?"bg-amber-50 border-amber-200":effStatus==="discrepancy"||effStatus==="escalate"?"bg-red-50 border-red-200":effStatus==="cleared"?"bg-green-50 border-green-200":effStatus==="pharmacy"?"bg-teal-50 border-teal-200":"bg-epic-sectionBg border-[#BBDEFB]"} p-3 sm:p-4`}>
 
-        {/* Alert / Action Taken Banner */}
+        {/* Banner */}
         {patient.actionTaken ? (
-          <div className={`mb-3 p-2.5 rounded-lg border flex items-center justify-between ${patient.actionTaken.type==="changed"?"bg-green-100 border-green-300 text-green-800":patient.actionTaken.type==="pharmacy"?"bg-teal-100 border-teal-300 text-teal-800":"bg-orange-100 border-orange-300 text-orange-800"}`}>
-            <span className="text-sm font-semibold">
-              ✓ {patient.actionTaken.type==="changed"?`Rx changed to ${patient.actionTaken.drug}`:patient.actionTaken.type==="pharmacy"?"Pharmacy consult sent":"Escalated to MD"} — {fmtDateTime(patient.actionTaken.timestamp)}
+          <div className={`mb-3 p-2.5 rounded-lg border flex items-center justify-between gap-2 ${patient.actionTaken.type==="changed"?"bg-green-100 border-green-300 text-green-800":patient.actionTaken.type==="pharmacy"?"bg-teal-100 border-teal-300 text-teal-800":"bg-orange-100 border-orange-300 text-orange-800"}`}>
+            <span className="text-xs sm:text-sm font-semibold">
+              ✓ {patient.actionTaken.type==="changed"?`Rx → ${patient.actionTaken.drug}`:patient.actionTaken.type==="pharmacy"?"Pharmacy consulted":"Escalated to MD"} — {fmtDateTime(patient.actionTaken.timestamp)}
             </span>
-            <button onClick={()=>{ if(patient.actionTaken.type==="changed")setShowChangeRx(true); else if(patient.actionTaken.type==="pharmacy")setShowPharmacy(true); else setShowEscalate(true); }} className="text-xs px-2 py-1 border rounded hover:bg-white/50">Revise</button>
+            <button onClick={()=>{ if(patient.actionTaken.type==="changed")setShowChangeRx(true); else if(patient.actionTaken.type==="pharmacy")setShowPharmacy(true); else setShowEscalate(true); }} className="text-xs px-2 py-1 border rounded hover:bg-white/60 flex-shrink-0">Revise</button>
           </div>
         ) : (effStatus==="discrepancy"||effStatus==="escalate")&&(
           <div className={`mb-3 p-2.5 rounded-lg border ${analysis.requiresAdmission?"bg-amber-100 border-amber-300":"bg-red-100 border-red-300"}`}>
             <div className={`text-sm font-bold ${analysis.requiresAdmission?"text-amber-900":"text-red-900"}`}>
-              {analysis.requiresAdmission?"⚠ Likely Admission Required — No Oral Options":analysis.isPyelo?"⚠ Pyelonephritis / Upper Tract Involvement":analysis.isMDRO?"⚠ MDRO Organism — Escalation Required":"⚠ Culture Resistance Discrepancy"}
+              {analysis.requiresAdmission?"⚠ Likely Admission — No Oral Options":analysis.isPyelo?"⚠ Pyelonephritis / Upper Tract":analysis.isMDRO?"⚠ MDRO — Escalation Required":"⚠ Culture Resistance Discrepancy"}
             </div>
             <div className={`text-xs mt-0.5 ${analysis.requiresAdmission?"text-amber-800":"text-red-800"}`}>
-              {analysis.requiresAdmission?`${patient.culture.organism} — no oral antibiotic options. IV therapy required. ${patient.isDischarge?"Patient is discharged — callback required for admission coordination.":""}`:analysis.isPyelo?"Clinical presentation consistent with upper tract infection. IV antibiotics and MD review indicated.":analysis.isMDRO?`${patient.culture.organism} is a multi-drug resistant organism. Standard protocol prescribing unavailable.`:`${patient.activeMedication.drug} RESISTANT per culture. Antibiogram-guided change recommended.`}
+              {analysis.requiresAdmission?`No oral antibiotics for ${patient.culture.organism}. IV therapy required.${patient.isDischarge?" Discharged — callback for admission coordination.":""}`:analysis.isPyelo?"Upper tract infection. IV antibiotics + MD review indicated.":analysis.isMDRO?`${patient.culture.organism} is MDRO. Standard protocol unavailable.`:`${patient.activeMedication.drug} RESISTANT. Culture-guided change recommended.`}
             </div>
           </div>
         )}
@@ -800,50 +801,53 @@ function PatientWorkspace({ patient, institution, onAction }) {
         {!patient.actionTaken && analysis.recommendations.length>0 && (
           <div className="mb-3">
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">AI Recommendations — {ANTIBIOGRAMS[institution]?.name||"Stanford"}</div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col sm:flex-row gap-2">
               {analysis.recommendations.slice(0,3).map((rec,i)=>(
-                <div key={rec.drug} className="bg-white rounded-lg border border-[#BBDEFB] p-2.5 flex-1 min-w-[140px] shadow-sm">
+                <div key={rec.drug} className="bg-white rounded-lg border border-[#BBDEFB] p-2.5 flex-1 shadow-sm">
                   <div className="flex items-center gap-1 mb-1">
                     <span className="text-xs text-gray-400 font-bold">#{i+1}</span>
                     <span className="text-sm font-bold text-gray-900 truncate">{rec.drug}</span>
                     <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${rec.susceptPct>=90?"bg-green-100 text-green-800":rec.susceptPct>=75?"bg-blue-100 text-blue-800":"bg-yellow-100 text-yellow-800"}`}>{rec.susceptPct}%S</span>
                   </div>
                   <div className="text-xs text-gray-400">{rec.dose}</div>
-                  <span className={`text-xs px-1.5 py-0.5 rounded mt-1 inline-block ${rec.route==="IV"?"bg-purple-100 text-purple-700":"bg-gray-100 text-gray-600"}`}>{rec.route}</span>
-                  {rec.indication&&<div className="text-xs text-amber-700 mt-1 leading-tight">⚠ {rec.indication}</div>}
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${rec.route==="IV"?"bg-purple-100 text-purple-700":"bg-gray-100 text-gray-600"}`}>{rec.route}</span>
+                    {rec.indication&&<span className="text-xs text-amber-700">⚠ {rec.indication}</span>}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Action Buttons */}
+        {/* Action buttons — mobile stacks vertically */}
         {!patient.actionTaken && (
-          <div className="flex gap-2">
-            <button onClick={()=>setShowChangeRx(true)} disabled={!canChangeRx}
-              title={!canChangeRx?"Requires MD review — use Escalate":"Change antibiotic per protocol"}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${canChangeRx?"bg-[#1976D2] hover:bg-[#1565C0] text-white shadow":"bg-gray-100 text-gray-400 cursor-not-allowed"}`}>
-              💊 Change Rx
-            </button>
-            <button onClick={()=>setShowPharmacy(true)}
-              className="px-3 py-2 rounded-lg text-sm font-semibold border border-teal-400 text-teal-700 hover:bg-teal-50 transition-all">
-              🔬 Ask Pharmacy
-            </button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2 flex-1">
+              <button onClick={()=>setShowChangeRx(true)} disabled={!canChangeRx}
+                title={!canChangeRx?"Requires MD review":"Change antibiotic per protocol"}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all ${canChangeRx?"bg-[#1976D2] hover:bg-[#1565C0] text-white shadow":"bg-gray-100 text-gray-400 cursor-not-allowed"}`}>
+                💊 Change Rx
+              </button>
+              <button onClick={()=>setShowPharmacy(true)} className="px-3 py-2.5 rounded-lg text-sm font-semibold border border-teal-400 text-teal-700 hover:bg-teal-50 flex-shrink-0">
+                🔬 Pharmacy
+              </button>
+            </div>
             <button onClick={()=>setShowEscalate(true)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold text-white shadow transition-all ${analysis.requiresAdmission||analysis.isPyelo?"bg-amber-600 hover:bg-amber-700 pulse-amber":"bg-orange-600 hover:bg-orange-700"} ${mustEscalate?"ring-2 ring-offset-1 ring-orange-400":""}`}>
+              className={`w-full sm:flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold text-white shadow transition-all ${analysis.requiresAdmission||analysis.isPyelo?"bg-amber-600 hover:bg-amber-700 pulse-amber":"bg-orange-600 hover:bg-orange-700"} ${mustEscalate?"ring-2 ring-offset-1 ring-orange-400":""}`}>
               📞 Escalate to MD
             </button>
           </div>
         )}
         {effStatus==="cleared"&&!patient.actionTaken&&(
-          <div className="flex items-center gap-3">
-            <div className="flex-1 p-2 bg-green-100 border border-green-300 rounded-lg text-sm text-green-800 font-medium text-center">✓ Empiric therapy confirmed susceptible — no action required</div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex-1 p-2 bg-green-100 border border-green-300 rounded-lg text-sm text-green-800 font-medium text-center">✓ Empiric therapy confirmed susceptible</div>
             <button onClick={()=>onAction(patient.id,"reviewed",null,null)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg">Mark Reviewed</button>
           </div>
         )}
       </div>
 
-      {showChangeRx&&<ChangeRxModal patient={patient} analysis={analysis} onConfirm={(drug,note,called)=>{ onAction(patient.id,"changed",drug,note); setShowChangeRx(false); }} onClose={()=>setShowChangeRx(false)}/>}
+      {showChangeRx&&<ChangeRxModal patient={patient} analysis={analysis} onConfirm={(drug,note)=>{ onAction(patient.id,"changed",drug,note); setShowChangeRx(false); }} onClose={()=>setShowChangeRx(false)}/>}
       {showPharmacy&&<PharmacyModal patient={patient} analysis={analysis} onConfirm={(note)=>{ onAction(patient.id,"pharmacy",null,note); setShowPharmacy(false); }} onClose={()=>setShowPharmacy(false)}/>}
       {showEscalate&&<EscalateModal patient={patient} analysis={analysis} onConfirm={(note)=>{ onAction(patient.id,"escalated",null,note); setShowEscalate(false); }} onClose={()=>setShowEscalate(false)}/>}
     </div>
@@ -864,9 +868,16 @@ function App() {
   const [filterStatus,setFilter]     = useState("all");
   const [showLoadMore,setLoadMore]   = useState(false);
   const [customABG,setCustomABG]     = useState(null);
+  const [mobilePane,setMobilePane]   = useState("queue"); // "queue" | "workspace"
   const fileRef = useRef();
 
   const selectedPatient = patients.find(p=>p.id===selectedId);
+
+  // Select patient + auto-navigate to workspace on mobile
+  const selectPatient = useCallback((id)=>{
+    setSelectedId(id);
+    setMobilePane("workspace");
+  },[]);
 
   const handleAction = useCallback((id,type,drug,note)=>{
     setPatients(prev=>prev.map(p=>p.id===id?{...p,actionTaken:{type,drug,note,timestamp:new Date().toISOString()}}:p));
@@ -880,7 +891,7 @@ function App() {
   function loadNextBatch(){
     const next=ALL_PATIENTS.slice(batchIdx*BATCH_SIZE,(batchIdx+1)*BATCH_SIZE);
     setPatients(prev=>[...prev,...next]); setBatchIdx(b=>b+1); setLoadMore(false);
-    if(next.length>0)setSelectedId(next[0].id);
+    if(next.length>0){ setSelectedId(next[0].id); setMobilePane("workspace"); }
   }
 
   const stats = useMemo(()=>({
@@ -897,33 +908,40 @@ function App() {
     return patients;
   },[patients,filterStatus]);
 
-  const effInstitution = institution;
-
   return (
     <div className="h-screen flex flex-col bg-epic-bg overflow-hidden">
 
       {/* ── Header ── */}
       <header style={{background:"#1976D2"}} className="text-white px-4 py-2.5 shadow-md flex-shrink-0">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="text-xl">⚕</div>
+        <div className="flex items-center justify-between gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-lg">⚕</span>
             <div>
-              <div className="font-bold text-base leading-tight">UCx AI Agent</div>
-              <div className="text-blue-200 text-xs">RN Culture Review Workflow</div>
+              <div className="font-bold text-sm sm:text-base leading-tight">UCx AI Agent</div>
+              <div className="text-blue-200 text-xs hidden sm:block">RN Culture Review Workflow</div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="hidden md:flex items-center gap-4 text-sm">
+          {/* Desktop stats */}
+          <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.actionRequired} Action Required</span></div>
             <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.cleared} Cleared</span></div>
             <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.pending} Pending</span></div>
           </div>
 
-          {/* Institution Toggle */}
-          <div className="flex items-center gap-2">
+          {/* Institution toggle */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs text-blue-200 hidden lg:inline">Antibiogram:</span>
-            <div className="flex rounded overflow-hidden border border-blue-400 text-xs">
+            {/* Mobile: compact select */}
+            <select
+              className="md:hidden bg-[#1565C0] text-white text-xs rounded px-2 py-1.5 border border-blue-400 focus:outline-none"
+              value={institution} onChange={e=>{setInstitution(e.target.value);setCustomABG(null);}}>
+              <option value="stanford">Stanford</option>
+              <option value="mgh">Harvard MGH</option>
+            </select>
+            {/* Desktop: pill buttons */}
+            <div className="hidden md:flex rounded overflow-hidden border border-blue-400 text-xs">
               {[{id:"stanford",label:"Stanford"},{id:"mgh",label:"Harvard MGH"}].map(opt=>(
                 <button key={opt.id} onClick={()=>{setInstitution(opt.id);setCustomABG(null);}}
                   className={`px-3 py-1.5 font-medium transition-colors ${!customABG&&institution===opt.id?"bg-white text-[#1565C0]":"bg-[#1565C0] text-blue-200 hover:bg-[#1976D2]"}`}>
@@ -934,34 +952,45 @@ function App() {
                 + Upload
                 <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={e=>{
                   const f=e.target.files?.[0]; if(!f)return;
-                  const r=new FileReader(); r.onload=ev=>{try{setCustomABG(JSON.parse(ev.target.result));}catch{alert("Invalid JSON antibiogram");}};r.readAsText(f);
+                  const r=new FileReader(); r.onload=ev=>{try{setCustomABG(JSON.parse(ev.target.result));}catch{alert("Invalid JSON");}};r.readAsText(f);
                 }}/>
               </label>
             </div>
             {customABG&&<span className="text-xs bg-white text-[#1565C0] px-2 py-0.5 rounded font-semibold">Custom</span>}
           </div>
         </div>
+
+        {/* Mobile stats sub-bar */}
+        <div className="md:hidden flex items-center gap-3 mt-1.5 text-xs text-blue-200">
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-300 inline-block"></span>{stats.actionRequired} Action</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-300 inline-block"></span>{stats.cleared} Cleared</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block"></span>{stats.pending} Pending</span>
+        </div>
       </header>
 
       {/* Load-more banner */}
       {showLoadMore&&(
-        <div className="bg-epic-sectionBg border-b border-[#BBDEFB] px-4 py-2 flex items-center justify-between flex-shrink-0">
-          <span className="text-sm text-epic-dark font-medium">✓ All active cases resolved — {ALL_PATIENTS.length-batchIdx*BATCH_SIZE} more patients in queue</span>
-          <button onClick={loadNextBatch} className="text-xs px-4 py-1.5 bg-[#1976D2] hover:bg-[#1565C0] text-white rounded font-semibold">
-            Load Next {Math.min(BATCH_SIZE,ALL_PATIENTS.length-batchIdx*BATCH_SIZE)} Patients →
+        <div className="bg-epic-sectionBg border-b border-[#BBDEFB] px-4 py-2 flex items-center justify-between flex-shrink-0 gap-2">
+          <span className="text-xs sm:text-sm text-epic-dark font-medium">✓ All active cases resolved — {ALL_PATIENTS.length-batchIdx*BATCH_SIZE} more in queue</span>
+          <button onClick={loadNextBatch} className="text-xs px-3 py-1.5 bg-[#1976D2] hover:bg-[#1565C0] text-white rounded font-semibold flex-shrink-0">
+            Load Next {Math.min(BATCH_SIZE,ALL_PATIENTS.length-batchIdx*BATCH_SIZE)} →
           </button>
         </div>
       )}
 
+      {/* ── Main content area ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* ── Patient Queue ── */}
-        <div className="w-72 flex-shrink-0 bg-white border-r border-[#BBDEFB] flex flex-col">
-          {/* Filter pills */}
+
+        {/* Patient Queue — full width on mobile when mobilePane==="queue", sidebar on md+ */}
+        <div className={`bg-white border-r border-[#BBDEFB] flex flex-col
+          ${mobilePane==="queue"?"flex":"hidden"} md:flex
+          w-full md:w-72 md:flex-shrink-0`}>
+          {/* Filter pills — horizontal scroll on mobile */}
           <div className="px-2 py-2 border-b border-[#BBDEFB] bg-epic-sectionBg flex-shrink-0">
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
               {[{id:"all",l:"All"},{id:"action",l:`Action (${stats.actionRequired})`},{id:"cleared",l:`Cleared (${stats.cleared})`},{id:"pending",l:"Pending"}].map(f=>(
                 <button key={f.id} onClick={()=>setFilter(f.id)}
-                  className={`text-xs px-2.5 py-1 rounded font-medium transition-colors ${filterStatus===f.id?"bg-[#1976D2] text-white":"bg-white text-gray-600 border border-gray-300 hover:border-[#1976D2] hover:text-[#1976D2]"}`}>
+                  className={`text-xs px-2.5 py-1 rounded font-medium transition-colors whitespace-nowrap flex-shrink-0 ${filterStatus===f.id?"bg-[#1976D2] text-white":"bg-white text-gray-600 border border-gray-300 hover:border-[#1976D2] hover:text-[#1976D2]"}`}>
                   {f.l}
                 </button>
               ))}
@@ -970,7 +999,7 @@ function App() {
           <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
             {filtered.length===0&&<div className="text-center text-sm text-gray-400 mt-8 px-4">No patients in this category</div>}
             {filtered.map(p=>(
-              <PatientCard key={p.id} patient={p} isSelected={p.id===selectedId} onClick={()=>setSelectedId(p.id)}/>
+              <PatientCard key={p.id} patient={p} isSelected={p.id===selectedId} onClick={()=>selectPatient(p.id)}/>
             ))}
           </div>
           <div className="p-2 border-t border-[#BBDEFB] bg-epic-sectionBg text-center text-xs text-gray-400">
@@ -978,14 +1007,49 @@ function App() {
           </div>
         </div>
 
-        {/* ── Workspace ── */}
-        <div className="flex-1 overflow-hidden">
+        {/* Workspace — full width on mobile when mobilePane==="workspace", flex-1 on md+ */}
+        <div className={`flex-1 overflow-hidden flex flex-col
+          ${mobilePane==="workspace"?"flex":"hidden"} md:flex`}>
           {selectedPatient
-            ? <PatientWorkspace key={selectedPatient.id} patient={selectedPatient} institution={effInstitution} onAction={handleAction}/>
-            : <div className="flex items-center justify-center h-full text-gray-400">
-                <div className="text-center"><div className="text-5xl mb-3">⚕</div><div className="text-lg font-medium">Select a patient to begin review</div></div>
+            ? <PatientWorkspace key={selectedPatient.id} patient={selectedPatient} institution={institution} onAction={handleAction}/>
+            : <div className="flex items-center justify-center h-full text-gray-400 bg-white">
+                <div className="text-center px-6">
+                  <div className="text-5xl mb-3">⚕</div>
+                  <div className="text-lg font-medium">Select a patient to begin</div>
+                  <div className="text-sm mt-1 text-gray-400">Use the queue to navigate patients</div>
+                </div>
               </div>}
         </div>
+      </div>
+
+      {/* ── Mobile bottom tab bar (hidden on desktop) ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#BBDEFB] flex z-40 pb-safe shadow-lg">
+        {/* Patients tab */}
+        <button onClick={()=>setMobilePane("queue")}
+          className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 relative transition-colors ${mobilePane==="queue"?"text-[#1976D2]":"text-gray-500"}`}>
+          {/* List icon */}
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+          <span className="text-xs font-medium">Patients</span>
+          {stats.actionRequired>0&&(
+            <span className="absolute top-1.5 left-1/2 ml-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
+              {stats.actionRequired>9?"9+":stats.actionRequired}
+            </span>
+          )}
+        </button>
+
+        {/* Review tab */}
+        <button onClick={()=>setMobilePane("workspace")} disabled={!selectedPatient}
+          className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-colors ${mobilePane==="workspace"?"text-[#1976D2]":"text-gray-500"} disabled:opacity-40`}>
+          {/* Chart icon */}
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <span className="text-xs font-medium truncate max-w-[80px]">
+            {selectedPatient?selectedPatient.name.last:"Review"}
+          </span>
+        </button>
       </div>
     </div>
   );
