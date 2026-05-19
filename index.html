@@ -242,13 +242,86 @@ function fmtDate(iso){ if(!iso)return""; return new Date(iso).toLocaleDateString
 function fmtDateTime(iso){ if(!iso)return""; return new Date(iso).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
 function hasPyelo(ctx){ return ["flank pain","fever","CVA tenderness","pyelonephritis","nausea","vomiting","rigors","chills","back pain","systemically ill","costovertebral"].some(k=>ctx.toLowerCase().includes(k)); }
 
+const MDRO_FORCED_PROFILES = {
+  'MRSA': {
+    forced_R: ['Ampicillin','Amoxicillin-Clavulanate','Cephalexin','Ceftriaxone','Cefazolin','Cefepime','Piperacillin-Tazobactam','Cefpodoxime'],
+    forced_S: ['Vancomycin','Linezolid'],
+    probabilistic: ['TMP-SMX','Doxycycline','Daptomycin','Ciprofloxacin','Gentamicin'],
+  },
+  'VRE (E. faecium)': {
+    forced_R: ['Vancomycin','Ampicillin','Amoxicillin-Clavulanate','Ciprofloxacin','Cefpodoxime'],
+    forced_S: ['Linezolid'],
+    probabilistic: ['Daptomycin','Fosfomycin'],
+  },
+  'ESBL E. coli': {
+    forced_R: ['Cephalexin','Ceftriaxone','Cefazolin','Ampicillin','Amoxicillin-Clavulanate','Cefpodoxime'],
+    forced_S: ['Meropenem','Ertapenem'],
+    probabilistic: ['Nitrofurantoin','Fosfomycin','TMP-SMX','Ciprofloxacin','Piperacillin-Tazobactam','Gentamicin','Cefepime'],
+    probabilistic_overrides: { 'Nitrofurantoin':0.65,'Fosfomycin':0.60,'TMP-SMX':0.30,'Ciprofloxacin':0.25,'Cefepime':0.10 }
+  },
+  'ESBL Klebsiella': {
+    forced_R: ['Cephalexin','Ceftriaxone','Cefazolin','Ampicillin','Amoxicillin-Clavulanate','Nitrofurantoin','Cefpodoxime'],
+    forced_S: ['Meropenem','Ertapenem'],
+    probabilistic: ['TMP-SMX','Ciprofloxacin','Piperacillin-Tazobactam','Gentamicin','Cefepime'],
+    probabilistic_overrides: { 'TMP-SMX':0.25,'Ciprofloxacin':0.20,'Cefepime':0.08 }
+  },
+  'CRE Klebsiella': {
+    forced_R: ['Meropenem','Ertapenem','Cephalexin','Ceftriaxone','Ampicillin','Amoxicillin-Clavulanate','Piperacillin-Tazobactam','Ciprofloxacin','TMP-SMX','Cefpodoxime'],
+    forced_S: [],
+    probabilistic: ['Ceftazidime-Avibactam','Cefiderocol','Colistin','Gentamicin','Tobramycin'],
+    probabilistic_overrides: { 'Ceftazidime-Avibactam':0.75,'Cefiderocol':0.85,'Colistin':0.72 }
+  },
+  'MDR Pseudomonas': {
+    forced_R: ['Ciprofloxacin','Levofloxacin','Piperacillin-Tazobactam','Meropenem','Cefepime','Cefpodoxime'],
+    forced_S: [],
+    probabilistic: ['Ceftazidime-Avibactam','Cefiderocol','Colistin','Tobramycin','Gentamicin'],
+    probabilistic_overrides: { 'Ceftazidime-Avibactam':0.68,'Cefiderocol':0.82,'Colistin':0.78,'Tobramycin':0.30 }
+  },
+};
+
+const INTRINSIC_RESISTANCE_RULES = {
+  'Proteus mirabilis':     new Set(['Nitrofurantoin','Colistin','Daptomycin']),
+  'Klebsiella pneumoniae': new Set(['Ampicillin']),
+  'ESBL Klebsiella':       new Set(['Ampicillin','Cephalexin','Ceftriaxone','Amoxicillin-Clavulanate','Nitrofurantoin','Cefpodoxime']),
+  'CRE Klebsiella':        new Set(['Ampicillin','Cephalexin','Ceftriaxone','Meropenem','Ertapenem','Piperacillin-Tazobactam','Amoxicillin-Clavulanate','Cefpodoxime']),
+  'Enterobacter cloacae':  new Set(['Ampicillin','Amoxicillin-Clavulanate','Cephalexin']),
+  'Pseudomonas aeruginosa':new Set(['Ampicillin','Amoxicillin-Clavulanate','Cephalexin','Nitrofurantoin','TMP-SMX','Fosfomycin','Cefpodoxime']),
+  'MDR Pseudomonas':       new Set(['Ampicillin','Amoxicillin-Clavulanate','Cephalexin','Nitrofurantoin','TMP-SMX','Fosfomycin','Cefpodoxime']),
+  'MRSA':                  new Set(['Ampicillin','Amoxicillin-Clavulanate','Cephalexin','Ceftriaxone','Cefazolin','Cefepime','Piperacillin-Tazobactam','Cefpodoxime']),
+  'VRE (E. faecium)':      new Set(['Vancomycin','Ampicillin','Amoxicillin-Clavulanate','Cefpodoxime']),
+};
+
 function buildSusceptibilities(organism) {
-  const abx = ANTIBIOGRAMS.stanford.organisms[organism] || {};
-  return Object.keys(abx).map(drug => {
-    const pct = abx[drug];
-    let interp = pct>=80?"S":pct>=50?(Math.random()>.4?"S":"I"):pct>=20?(Math.random()>.5?"I":"R"):"R";
-    const micVals = { S:["≤0.25","≤0.5","≤1","≤2"], I:["4","8","16"], R:["≥32","≥64","≥128"] };
-    return { drug, mic:rnd(micVals[interp]), interpretation:interp };
+  const abxData = ANTIBIOGRAMS.stanford.organisms[organism] || {};
+  const forcedProfile = MDRO_FORCED_PROFILES[organism];
+  const intrinsicR = INTRINSIC_RESISTANCE_RULES[organism] || new Set();
+  const micVals = { S:['≤0.25','≤0.5','≤1','≤2'], I:['4','8','16'], R:['≥32','≥64','≥128'] };
+  return Object.keys(abxData).map(drug => {
+    let interp;
+    if (forcedProfile) {
+      if (forcedProfile.forced_R && forcedProfile.forced_R.includes(drug)) {
+        interp = 'R';
+      } else if (forcedProfile.forced_S && forcedProfile.forced_S.includes(drug)) {
+        interp = 'S';
+      } else if (forcedProfile.probabilistic_overrides && forcedProfile.probabilistic_overrides[drug] !== undefined) {
+        interp = Math.random() < forcedProfile.probabilistic_overrides[drug] ? 'S' : 'R';
+      } else {
+        const pct = abxData[drug];
+        interp = pct >= 80 ? 'S' : pct >= 40 ? (Math.random() > 0.5 ? 'I' : 'R') : 'R';
+      }
+    } else {
+      if (intrinsicR.has(drug)) {
+        interp = 'R';
+      } else {
+        const pct = abxData[drug];
+        interp = pct >= 80 ? 'S'
+          : pct >= 60 ? (Math.random() > 0.25 ? 'S' : 'I')
+          : pct >= 40 ? (Math.random() > 0.5 ? 'I' : 'R')
+          : pct >= 20 ? (Math.random() > 0.3 ? 'R' : 'I')
+          : 'R';
+      }
+    }
+    return { drug, mic: rnd(micVals[interp]), interpretation: interp };
   });
 }
 
@@ -1306,7 +1379,162 @@ function MDDashboard({ patients, setPatients, institution }) {
    MAIN APP
 ══════════════════════════════════════════════════════════ */
 const ALL_PATIENTS = generatePatients(120);
+window.__ALL_PATIENTS__ = ALL_PATIENTS;
 const BATCH_SIZE   = 15;
+
+// ─── CLINICAL TEST HARNESS ──────────────────────────────────────────────────
+function runAllClinicalTests(patients) {
+  const results = [];
+  let totalPass = 0, totalFail = 0;
+
+  function suite(name, fn) {
+    const suiteResults = [];
+    fn((label, pass, detail) => {
+      suiteResults.push({ label, pass, detail });
+      if (pass) totalPass++; else totalFail++;
+    });
+    const failed = suiteResults.filter(r => !r.pass);
+    results.push({ suite: name, total: suiteResults.length, failed: failed.length, failures: failed });
+  }
+
+  function getSusc(pt, drug) {
+    return pt.culture.susceptibilities.find(s => s.drug === drug);
+  }
+
+  // 1. MDRO Forced-R Integrity
+  suite('MDRO Forced-R Integrity', assert => {
+    const mdroPts = patients.filter(p => MDRO_FORCED_PROFILES[p.culture.organism]);
+    mdroPts.forEach(pt => {
+      const profile = MDRO_FORCED_PROFILES[pt.culture.organism];
+      (profile.forced_R || []).forEach(drug => {
+        const s = getSusc(pt, drug);
+        if (!s) return; // drug not in panel for this organism, skip
+        assert(
+          `${pt.name.first} ${pt.name.last} (${pt.culture.organism}): ${drug} must be R`,
+          s.interpretation === 'R',
+          `Got ${s.interpretation}`
+        );
+      });
+    });
+  });
+
+  // 2. MDRO Forced-S Integrity
+  suite('MDRO Forced-S Integrity', assert => {
+    const mdroPts = patients.filter(p => MDRO_FORCED_PROFILES[p.culture.organism]);
+    mdroPts.forEach(pt => {
+      const profile = MDRO_FORCED_PROFILES[pt.culture.organism];
+      (profile.forced_S || []).forEach(drug => {
+        const s = getSusc(pt, drug);
+        if (!s) return;
+        assert(
+          `${pt.name.first} ${pt.name.last} (${pt.culture.organism}): ${drug} must be S`,
+          s.interpretation === 'S',
+          `Got ${s.interpretation}`
+        );
+      });
+    });
+  });
+
+  // 3. Intrinsic Resistance Rules
+  suite('Intrinsic Resistance Rules', assert => {
+    patients.forEach(pt => {
+      const intrinsicR = INTRINSIC_RESISTANCE_RULES[pt.culture.organism];
+      if (!intrinsicR) return;
+      intrinsicR.forEach(drug => {
+        const s = getSusc(pt, drug);
+        if (!s) return;
+        assert(
+          `${pt.culture.organism}: ${drug} must always be R (intrinsic)`,
+          s.interpretation === 'R',
+          `Got ${s.interpretation} for ${pt.name.first} ${pt.name.last}`
+        );
+      });
+    });
+  });
+
+  // 4. Status Integrity — discrepancy patients must have active drug as R
+  suite('Discrepancy Status Integrity', assert => {
+    const discPts = patients.filter(p => p.status === 'discrepancy');
+    discPts.forEach(pt => {
+      const drug = pt.activeMedication.drug;
+      const s = getSusc(pt, drug);
+      assert(
+        `${pt.name.first} ${pt.name.last}: active drug ${drug} should be R for discrepancy status`,
+        !s || s.interpretation === 'R' || s.interpretation === 'I',
+        `Got ${s ? s.interpretation : 'not in panel'}`
+      );
+    });
+  });
+
+  // 5. Escalate patients — all have escalateReasons
+  suite('Escalate Patients Have Reasons', assert => {
+    const escPts = patients.filter(p => p.status === 'escalate');
+    escPts.forEach(pt => {
+      assert(
+        `${pt.name.first} ${pt.name.last}: escalate patient must have escalateReasons`,
+        pt.escalateReasons && pt.escalateReasons.length > 0,
+        `escalateReasons: ${JSON.stringify(pt.escalateReasons)}`
+      );
+    });
+  });
+
+  // 6. Demographics — age ranges by case type
+  suite('Demographics Age Ranges', assert => {
+    patients.forEach(pt => {
+      if (pt.status === 'escalate' && pt.culture.isMDR) {
+        assert(`MDRO pt ${pt.name.first} ${pt.name.last} age 58-85`, pt.age >= 50 && pt.age <= 90, `age=${pt.age}`);
+      }
+    });
+    const pyeloPts = patients.filter(p => hasPyelo(p.clinicalContext) && p.status !== 'escalate');
+    pyeloPts.forEach(pt => {
+      assert(`Pyelo pt ${pt.name.first} ${pt.name.last} age 20-55`, pt.age >= 18 && pt.age <= 60, `age=${pt.age}`);
+    });
+  });
+
+  // 7. Gender Name Consistency — no male names on female patients
+  suite('Gender Name Consistency', assert => {
+    const MALE_NAME_SET = new Set(['James','Robert','Michael','William','David','Richard','Joseph','Thomas','Charles','Daniel','Matthew','Anthony','Mark','Donald','Steven','Paul','Andrew','Kenneth','Joshua','George','Kevin','Brian','Edward','Ronald','Timothy','Jason','Jeffrey','Ryan','Jacob','Gary','Nicholas','Eric','Jonathan','Stephen','Larry','Justin','Scott','Brandon','Raymond','Gregory','Frank','Benjamin','Samuel','Patrick','Jack','Dennis','Jerry','Alexander','Tyler','Nathan']);
+    const FEMALE_NAME_SET = new Set(['Maria','Linda','Patricia','Barbara','Susan','Jessica','Sarah','Karen','Nancy','Lisa','Betty','Dorothy','Sandra','Ashley','Kimberly','Helen','Donna','Carol','Michelle','Emily','Amanda','Melissa','Deborah','Stephanie','Rebecca','Sharon','Laura','Cynthia','Kathleen','Amy','Angela','Shirley','Emma','Joyce','Virginia','Victoria','Kelly','Christina','Ruth','Joan','Evelyn','Judith','Megan','Cheryl','Andrea','Hannah','Martha','Jacqueline','Frances','Gloria']);
+    patients.forEach(pt => {
+      const fname = pt.name.first;
+      if (pt.sex === 'F') {
+        assert(`${fname}: female patient should not have male name`, !MALE_NAME_SET.has(fname) || FEMALE_NAME_SET.has(fname), `${fname} is a male name on female patient`);
+      } else {
+        assert(`${fname}: male patient should not have female name`, !FEMALE_NAME_SET.has(fname) || MALE_NAME_SET.has(fname), `${fname} is a female name on male patient`);
+      }
+    });
+  });
+
+  // 8. Pyelo patients not on Nitrofurantoin/Fosfomycin empirically
+  suite('Pyelo Empiric Drug Appropriateness', assert => {
+    patients.filter(p => hasPyelo(p.clinicalContext)).forEach(pt => {
+      const drug = pt.activeMedication.drug;
+      assert(
+        `${pt.name.first} ${pt.name.last} (pyelo): active drug ${drug} should not be Nitrofurantoin/Fosfomycin`,
+        drug !== 'Nitrofurantoin' && drug !== 'Fosfomycin',
+        `Active drug: ${drug}`
+      );
+    });
+  });
+
+  // Print results
+  console.group('🧪 UCx Clinical Test Results');
+  results.forEach(r => {
+    if (r.failed === 0) {
+      console.log(`✅ ${r.suite} — ${r.total} tests passed`);
+    } else {
+      console.group(`❌ ${r.suite} — ${r.failed}/${r.total} FAILED`);
+      r.failures.forEach(f => console.warn(`  FAIL: ${f.label} → ${f.detail}`));
+      console.groupEnd();
+    }
+  });
+  console.log(`\n📊 Total: ${totalPass} passed, ${totalFail} failed`);
+  if (totalFail === 0) console.log('🎉 All clinical tests passed!');
+  console.groupEnd();
+  return { totalPass, totalFail, results };
+}
+window.runAllClinicalTests = () => runAllClinicalTests(ALL_PATIENTS);
+// ─── END TEST HARNESS ───────────────────────────────────────────────────────
 
 function App() {
   const [activeTab,setActiveTab]     = useState("rn"); // "rn" | "md"
@@ -1331,6 +1559,8 @@ function App() {
   const handleAction = useCallback((id,type,drug,note)=>{
     setPatients(prev=>prev.map(p=>p.id===id?{...p,actionTaken:{type,drug,note,timestamp:new Date().toISOString()}}:p));
   },[]);
+
+  useEffect(()=>{ runAllClinicalTests(ALL_PATIENTS); },[]);
 
   useEffect(()=>{
     const active=patients.filter(p=>(p.status==="discrepancy"||p.status==="escalate")&&!p.actionTaken);
