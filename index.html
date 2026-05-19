@@ -76,9 +76,10 @@ const DRUG_META = {
   "Linezolid":               { route:"PO", class:"oxazolidinone",   narrow:5, doseStd:"600mg BID×7-14d" },
   "Daptomycin":              { route:"IV", class:"lipopeptide",     narrow:5, doseStd:"6mg/kg q24h IV",    indication:"Not for pulmonary infections" },
   "Doxycycline":             { route:"PO", class:"tetracycline",    narrow:3, doseStd:"100mg BID×7d" },
-  "Ceftazidime-Avibactam":   { route:"IV", class:"cephalosporin",   narrow:7, doseStd:"2.5g q8h IV",       indication:"ID consult required" },
-  "Cefiderocol":             { route:"IV", class:"cephalosporin",   narrow:7, doseStd:"2g q8h IV",          indication:"ID consult required" },
-  "Colistin":                { route:"IV", class:"polymyxin",       narrow:8, doseStd:"Dose per renal fn",  indication:"Last resort — ID consult required" },
+  "Cefpodoxime":             { route:"PO", class:"cephalosporin",   narrow:3, doseStd:"200mg BID×10-14d",  indication:"Pyelonephritis / complicated UTI" },
+  "Ceftazidime-Avibactam":   { route:"IV", class:"cephalosporin",   narrow:7, doseStd:"2.5g q8h IV",       indication:"MD review required" },
+  "Cefiderocol":             { route:"IV", class:"cephalosporin",   narrow:7, doseStd:"2g q8h IV",          indication:"MD review required" },
+  "Colistin":                { route:"IV", class:"polymyxin",       narrow:8, doseStd:"Dose per renal fn",  indication:"Last resort — MD review required" },
 };
 
 const ALLERGY_CROSS = {
@@ -91,37 +92,37 @@ const ANTIBIOGRAMS = {
   stanford: {
     name: "Stanford Health Care",
     organisms: {
-      "E. coli":                 { "Nitrofurantoin":96,"TMP-SMX":75,"Ciprofloxacin":79,"Levofloxacin":80,"Cephalexin":85,"Ceftriaxone":91,"Amoxicillin-Clavulanate":72,"Piperacillin-Tazobactam":93,"Meropenem":99,"Fosfomycin":96,"Ampicillin":43,"Gentamicin":92,"Cefepime":92 },
-      "Klebsiella pneumoniae":   { "Nitrofurantoin":20,"TMP-SMX":73,"Ciprofloxacin":83,"Cephalexin":78,"Ceftriaxone":87,"Amoxicillin-Clavulanate":68,"Piperacillin-Tazobactam":88,"Meropenem":99,"Gentamicin":89,"Cefepime":90,"Ampicillin":0 },
+      "E. coli":                 { "Nitrofurantoin":96,"TMP-SMX":75,"Ciprofloxacin":79,"Levofloxacin":80,"Cephalexin":85,"Cefpodoxime":82,"Ceftriaxone":91,"Amoxicillin-Clavulanate":72,"Piperacillin-Tazobactam":93,"Meropenem":99,"Fosfomycin":96,"Ampicillin":43,"Gentamicin":92,"Cefepime":92 },
+      "Klebsiella pneumoniae":   { "Nitrofurantoin":20,"TMP-SMX":73,"Ciprofloxacin":83,"Cephalexin":78,"Cefpodoxime":75,"Ceftriaxone":87,"Amoxicillin-Clavulanate":68,"Piperacillin-Tazobactam":88,"Meropenem":99,"Gentamicin":89,"Cefepime":90,"Ampicillin":0 },
       "Pseudomonas aeruginosa":  { "Ciprofloxacin":80,"Levofloxacin":75,"Piperacillin-Tazobactam":84,"Cefepime":83,"Meropenem":94,"Gentamicin":82,"Tobramycin":85,"Aztreonam":70 },
-      "Proteus mirabilis":       { "TMP-SMX":74,"Ciprofloxacin":88,"Cephalexin":89,"Ceftriaxone":93,"Piperacillin-Tazobactam":94,"Meropenem":99,"Ampicillin":60,"Nitrofurantoin":0,"Gentamicin":88 },
+      "Proteus mirabilis":       { "TMP-SMX":74,"Ciprofloxacin":88,"Cephalexin":89,"Cefpodoxime":88,"Ceftriaxone":93,"Piperacillin-Tazobactam":94,"Meropenem":99,"Ampicillin":60,"Nitrofurantoin":0,"Gentamicin":88 },
       "Enterococcus faecalis":   { "Ampicillin":96,"Amoxicillin-Clavulanate":95,"Nitrofurantoin":88,"Ciprofloxacin":38,"Vancomycin":97,"Linezolid":100,"Doxycycline":60 },
-      "Staphylococcus saprophyticus":{ "Nitrofurantoin":99,"TMP-SMX":94,"Ciprofloxacin":88,"Cephalexin":97,"Doxycycline":90 },
-      "Enterobacter cloacae":    { "TMP-SMX":68,"Ciprofloxacin":79,"Ceftriaxone":55,"Cefepime":88,"Piperacillin-Tazobactam":80,"Meropenem":98,"Gentamicin":88 },
-      "MRSA":                    { "Vancomycin":100,"Linezolid":100,"TMP-SMX":85,"Doxycycline":80,"Daptomycin":99,"Cephalexin":0,"Ampicillin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":35,"Gentamicin":75 },
-      "VRE (E. faecium)":        { "Linezolid":99,"Daptomycin":92,"Fosfomycin":55,"Vancomycin":0,"Ampicillin":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":20 },
-      "ESBL E. coli":            { "Meropenem":99,"Ertapenem":98,"Nitrofurantoin":85,"Fosfomycin":80,"Cephalexin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":30,"Ciprofloxacin":25,"Piperacillin-Tazobactam":70,"Gentamicin":80,"Cefepime":15 },
-      "ESBL Klebsiella":         { "Meropenem":99,"Ertapenem":97,"Cephalexin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":25,"Ciprofloxacin":20,"Piperacillin-Tazobactam":55,"Gentamicin":78,"Cefepime":10,"Nitrofurantoin":0 },
-      "CRE Klebsiella":          { "Ceftazidime-Avibactam":82,"Cefiderocol":90,"Colistin":75,"Meropenem":0,"Ertapenem":0,"Ceftriaxone":0,"Cephalexin":0,"Piperacillin-Tazobactam":0,"Ciprofloxacin":0,"TMP-SMX":0 },
+      "Staphylococcus saprophyticus":{ "Nitrofurantoin":99,"TMP-SMX":94,"Ciprofloxacin":88,"Cephalexin":97,"Cefpodoxime":90,"Doxycycline":90 },
+      "Enterobacter cloacae":    { "TMP-SMX":68,"Ciprofloxacin":79,"Cefpodoxime":48,"Ceftriaxone":55,"Cefepime":88,"Piperacillin-Tazobactam":80,"Meropenem":98,"Gentamicin":88 },
+      "MRSA":                    { "Vancomycin":100,"Linezolid":100,"TMP-SMX":85,"Doxycycline":80,"Daptomycin":99,"Cephalexin":0,"Cefpodoxime":0,"Ampicillin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":35,"Gentamicin":75 },
+      "VRE (E. faecium)":        { "Linezolid":99,"Daptomycin":92,"Fosfomycin":55,"Vancomycin":0,"Ampicillin":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":20,"Cefpodoxime":0 },
+      "ESBL E. coli":            { "Meropenem":99,"Ertapenem":98,"Nitrofurantoin":85,"Fosfomycin":80,"Cephalexin":0,"Cefpodoxime":10,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":30,"Ciprofloxacin":25,"Piperacillin-Tazobactam":70,"Gentamicin":80,"Cefepime":15 },
+      "ESBL Klebsiella":         { "Meropenem":99,"Ertapenem":97,"Cephalexin":0,"Cefpodoxime":8,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":25,"Ciprofloxacin":20,"Piperacillin-Tazobactam":55,"Gentamicin":78,"Cefepime":10,"Nitrofurantoin":0 },
+      "CRE Klebsiella":          { "Ceftazidime-Avibactam":82,"Cefiderocol":90,"Colistin":75,"Meropenem":0,"Ertapenem":0,"Ceftriaxone":0,"Cephalexin":0,"Cefpodoxime":0,"Piperacillin-Tazobactam":0,"Ciprofloxacin":0,"TMP-SMX":0 },
       "MDR Pseudomonas":         { "Ceftazidime-Avibactam":70,"Cefiderocol":85,"Colistin":80,"Meropenem":15,"Ciprofloxacin":20,"Piperacillin-Tazobactam":18,"Cefepime":12,"Tobramycin":30,"Gentamicin":25 },
     }
   },
   mgh: {
-    name: "Harvard MGH",
+    name: "NYC H+H Elmhurst",
     organisms: {
-      "E. coli":                 { "Nitrofurantoin":93,"TMP-SMX":70,"Ciprofloxacin":74,"Levofloxacin":75,"Cephalexin":80,"Ceftriaxone":87,"Amoxicillin-Clavulanate":68,"Piperacillin-Tazobactam":91,"Meropenem":99,"Fosfomycin":94,"Ampicillin":40,"Gentamicin":89,"Cefepime":89 },
-      "Klebsiella pneumoniae":   { "Nitrofurantoin":22,"TMP-SMX":70,"Ciprofloxacin":79,"Cephalexin":73,"Ceftriaxone":83,"Amoxicillin-Clavulanate":64,"Piperacillin-Tazobactam":84,"Meropenem":98,"Gentamicin":86,"Cefepime":87,"Ampicillin":0 },
-      "Pseudomonas aeruginosa":  { "Ciprofloxacin":75,"Levofloxacin":70,"Piperacillin-Tazobactam":81,"Cefepime":79,"Meropenem":91,"Gentamicin":79,"Tobramycin":83,"Aztreonam":65 },
-      "Proteus mirabilis":       { "TMP-SMX":71,"Ciprofloxacin":85,"Cephalexin":86,"Ceftriaxone":90,"Piperacillin-Tazobactam":91,"Meropenem":99,"Ampicillin":57,"Nitrofurantoin":0,"Gentamicin":84 },
-      "Enterococcus faecalis":   { "Ampicillin":95,"Amoxicillin-Clavulanate":93,"Nitrofurantoin":85,"Ciprofloxacin":32,"Vancomycin":96,"Linezolid":100,"Doxycycline":55 },
-      "Staphylococcus saprophyticus":{ "Nitrofurantoin":98,"TMP-SMX":92,"Ciprofloxacin":85,"Cephalexin":96,"Doxycycline":88 },
-      "Enterobacter cloacae":    { "TMP-SMX":62,"Ciprofloxacin":75,"Ceftriaxone":50,"Cefepime":84,"Piperacillin-Tazobactam":76,"Meropenem":97,"Gentamicin":85 },
-      "MRSA":                    { "Vancomycin":100,"Linezolid":100,"TMP-SMX":82,"Doxycycline":78,"Daptomycin":98,"Cephalexin":0,"Ampicillin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":28,"Gentamicin":71 },
-      "VRE (E. faecium)":        { "Linezolid":98,"Daptomycin":90,"Fosfomycin":48,"Vancomycin":0,"Ampicillin":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":15 },
-      "ESBL E. coli":            { "Meropenem":99,"Ertapenem":97,"Nitrofurantoin":82,"Fosfomycin":77,"Cephalexin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":28,"Ciprofloxacin":22,"Piperacillin-Tazobactam":65,"Gentamicin":77,"Cefepime":12 },
-      "ESBL Klebsiella":         { "Meropenem":98,"Ertapenem":96,"Cephalexin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":22,"Ciprofloxacin":18,"Piperacillin-Tazobactam":50,"Gentamicin":75,"Cefepime":8,"Nitrofurantoin":0 },
-      "CRE Klebsiella":          { "Ceftazidime-Avibactam":75,"Cefiderocol":85,"Colistin":72,"Meropenem":0,"Ertapenem":0,"Ceftriaxone":0,"Cephalexin":0,"Piperacillin-Tazobactam":0,"Ciprofloxacin":0,"TMP-SMX":0 },
-      "MDR Pseudomonas":         { "Ceftazidime-Avibactam":65,"Cefiderocol":80,"Colistin":76,"Meropenem":12,"Ciprofloxacin":18,"Piperacillin-Tazobactam":15,"Cefepime":10,"Tobramycin":27,"Gentamicin":22 },
+      "E. coli":                 { "Nitrofurantoin":91,"TMP-SMX":65,"Ciprofloxacin":69,"Levofloxacin":70,"Cephalexin":77,"Cefpodoxime":78,"Ceftriaxone":84,"Amoxicillin-Clavulanate":64,"Piperacillin-Tazobactam":89,"Meropenem":99,"Fosfomycin":93,"Ampicillin":37,"Gentamicin":87,"Cefepime":87 },
+      "Klebsiella pneumoniae":   { "Nitrofurantoin":19,"TMP-SMX":64,"Ciprofloxacin":72,"Cephalexin":69,"Cefpodoxime":70,"Ceftriaxone":78,"Amoxicillin-Clavulanate":58,"Piperacillin-Tazobactam":81,"Meropenem":97,"Gentamicin":83,"Cefepime":84,"Ampicillin":0 },
+      "Pseudomonas aeruginosa":  { "Ciprofloxacin":72,"Levofloxacin":67,"Piperacillin-Tazobactam":78,"Cefepime":76,"Meropenem":89,"Gentamicin":76,"Tobramycin":80,"Aztreonam":62 },
+      "Proteus mirabilis":       { "TMP-SMX":68,"Ciprofloxacin":82,"Cephalexin":83,"Cefpodoxime":83,"Ceftriaxone":88,"Piperacillin-Tazobactam":89,"Meropenem":99,"Ampicillin":53,"Nitrofurantoin":0,"Gentamicin":81 },
+      "Enterococcus faecalis":   { "Ampicillin":94,"Amoxicillin-Clavulanate":92,"Nitrofurantoin":84,"Ciprofloxacin":28,"Vancomycin":95,"Linezolid":100,"Doxycycline":52 },
+      "Staphylococcus saprophyticus":{ "Nitrofurantoin":97,"TMP-SMX":90,"Ciprofloxacin":83,"Cephalexin":95,"Cefpodoxime":87,"Doxycycline":86 },
+      "Enterobacter cloacae":    { "TMP-SMX":58,"Ciprofloxacin":72,"Cefpodoxime":43,"Ceftriaxone":47,"Cefepime":81,"Piperacillin-Tazobactam":73,"Meropenem":96,"Gentamicin":82 },
+      "MRSA":                    { "Vancomycin":100,"Linezolid":100,"TMP-SMX":80,"Doxycycline":76,"Daptomycin":97,"Cephalexin":0,"Cefpodoxime":0,"Ampicillin":0,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":25,"Gentamicin":68 },
+      "VRE (E. faecium)":        { "Linezolid":97,"Daptomycin":89,"Fosfomycin":45,"Vancomycin":0,"Ampicillin":0,"Amoxicillin-Clavulanate":0,"Ciprofloxacin":12,"Cefpodoxime":0 },
+      "ESBL E. coli":            { "Meropenem":99,"Ertapenem":97,"Nitrofurantoin":80,"Fosfomycin":74,"Cephalexin":0,"Cefpodoxime":8,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":24,"Ciprofloxacin":19,"Piperacillin-Tazobactam":62,"Gentamicin":74,"Cefepime":10 },
+      "ESBL Klebsiella":         { "Meropenem":97,"Ertapenem":95,"Cephalexin":0,"Cefpodoxime":6,"Ceftriaxone":0,"Amoxicillin-Clavulanate":0,"TMP-SMX":18,"Ciprofloxacin":15,"Piperacillin-Tazobactam":47,"Gentamicin":71,"Cefepime":7,"Nitrofurantoin":0 },
+      "CRE Klebsiella":          { "Ceftazidime-Avibactam":71,"Cefiderocol":82,"Colistin":69,"Meropenem":0,"Ertapenem":0,"Ceftriaxone":0,"Cephalexin":0,"Cefpodoxime":0,"Piperacillin-Tazobactam":0,"Ciprofloxacin":0,"TMP-SMX":0 },
+      "MDR Pseudomonas":         { "Ceftazidime-Avibactam":62,"Cefiderocol":78,"Colistin":73,"Meropenem":10,"Ciprofloxacin":15,"Piperacillin-Tazobactam":12,"Cefepime":8,"Tobramycin":24,"Gentamicin":19 },
     }
   }
 };
@@ -145,7 +146,21 @@ const ORGANISM_META = {
   "MDR Pseudomonas":              { gram:"Gram-negative rod",   isMDRO:true  },
 };
 
-const FIRST_NAMES = ["Maria","James","Linda","Robert","Patricia","Michael","Barbara","William","Susan","David","Jessica","Richard","Sarah","Joseph","Karen","Thomas","Nancy","Charles","Lisa","Daniel","Betty","Matthew","Dorothy","Anthony","Sandra","Mark","Ashley","Donald","Kimberly","Steven","Helen","Paul","Donna","Andrew","Carol","Kenneth","Michelle","Joshua","Emily","George","Amanda","Kevin","Melissa","Brian","Deborah","Edward","Stephanie","Ronald","Rebecca","Timothy","Sharon","Jason","Laura","Jeffrey","Cynthia","Ryan","Kathleen","Jacob","Amy","Gary","Angela","Nicholas","Shirley","Eric","Emma","Jonathan","Joyce","Stephen","Virginia","Larry","Victoria","Justin","Kelly","Scott","Christina","Brandon","Ruth","Raymond","Joan","Gregory","Evelyn","Frank","Judith","Benjamin","Megan","Samuel","Cheryl","Patrick","Andrea","Jack","Hannah","Dennis","Martha","Jerry","Jacqueline","Alexander","Frances","Tyler","Gloria"];
+// Gender-segregated name lists — matched to patient sex at generation time
+const FEMALE_NAMES = [
+  "Maria","Linda","Patricia","Barbara","Susan","Jessica","Sarah","Karen","Nancy","Lisa",
+  "Betty","Dorothy","Sandra","Ashley","Kimberly","Helen","Donna","Carol","Michelle","Emily",
+  "Amanda","Melissa","Deborah","Stephanie","Rebecca","Sharon","Laura","Cynthia","Kathleen",
+  "Amy","Angela","Shirley","Emma","Joyce","Virginia","Victoria","Kelly","Christina","Ruth",
+  "Joan","Evelyn","Judith","Megan","Cheryl","Andrea","Hannah","Martha","Jacqueline","Frances","Gloria"
+];
+const MALE_NAMES = [
+  "James","Robert","Michael","William","David","Richard","Joseph","Thomas","Charles","Daniel",
+  "Matthew","Anthony","Mark","Donald","Steven","Paul","Andrew","Kenneth","Joshua","George",
+  "Kevin","Brian","Edward","Ronald","Timothy","Jason","Jeffrey","Ryan","Jacob","Gary",
+  "Nicholas","Eric","Jonathan","Stephen","Larry","Justin","Scott","Brandon","Raymond","Gregory",
+  "Frank","Benjamin","Samuel","Patrick","Jack","Dennis","Jerry","Alexander","Tyler","Nathan"
+];
 const LAST_NAMES  = ["Smith","Johnson","Williams","Brown","Jones","Garcia","Miller","Davis","Rodriguez","Martinez","Hernandez","Lopez","Gonzalez","Wilson","Anderson","Thomas","Taylor","Moore","Jackson","Martin","Lee","Perez","Thompson","White","Harris","Sanchez","Clark","Ramirez","Lewis","Robinson","Walker","Young","Allen","King","Wright","Scott","Torres","Nguyen","Hill","Flores","Green","Adams","Nelson","Baker","Hall","Rivera","Campbell","Mitchell","Carter","Roberts","Patel","Chen","Kim","Wong","Singh","Murphy","O'Brien","Walsh","Coleman","Reyes","Cruz","Ortiz","Gutierrez","Chavez","Ramos","Diaz","Morales","Jimenez","Vasquez","Romero","Serrano","Castro","Vargas","Delgado","Rubio","Medina","Aguilar","Dominguez","Vega","Santiago","Nunez","Figueroa","Soto","Cabrera","Navarro","Fuentes"];
 const ALLERGIES_POOL = [
   { substance:"Penicillin",    severity:"severe/anaphylaxis", reaction:"Anaphylaxis, urticaria" },
@@ -163,20 +178,41 @@ const PROVIDERS = ["Dr. Priya Anand","Dr. Mark Sullivan","Dr. Rachel Kim","Dr. J
 const UNITS = ["3N-408","3N-412","4S-201","4S-215","ICU-3","ICU-7","2W-118","2W-122","5E-309","5E-317","Obs-6","Obs-11"];
 
 // All empiric drugs are PO — patients discharged on oral antibiotics only
+// Reviewed through ID expert lens for clinical plausibility
 const EMPIRIC_FOR = {
-  "E. coli":                 ["Nitrofurantoin","TMP-SMX","Ciprofloxacin","Cephalexin"],
-  "Klebsiella pneumoniae":   ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
-  "Pseudomonas aeruginosa":  ["Ciprofloxacin","Levofloxacin","TMP-SMX"],
-  "Proteus mirabilis":       ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
-  "Enterococcus faecalis":   ["Nitrofurantoin","Amoxicillin-Clavulanate","Ciprofloxacin","TMP-SMX"],
-  "Staphylococcus saprophyticus":["Nitrofurantoin","Cephalexin","TMP-SMX"],
-  "Enterobacter cloacae":    ["Ciprofloxacin","TMP-SMX","Cephalexin"],
-  "MRSA":                    ["TMP-SMX","Doxycycline","Linezolid"],
-  "VRE (E. faecium)":        ["Linezolid","Nitrofurantoin","Doxycycline"],
-  "ESBL E. coli":            ["Nitrofurantoin","Fosfomycin","TMP-SMX","Ciprofloxacin"],
-  "ESBL Klebsiella":         ["TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
-  "CRE Klebsiella":          ["TMP-SMX","Ciprofloxacin","Cephalexin"],
-  "MDR Pseudomonas":         ["Ciprofloxacin","Levofloxacin","TMP-SMX"],
+  "E. coli":                    ["Nitrofurantoin","TMP-SMX","Ciprofloxacin","Cephalexin"],
+  "Klebsiella pneumoniae":      ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
+  "Pseudomonas aeruginosa":     ["Ciprofloxacin","Levofloxacin"],              // TMP-SMX removed — no Pseudomonas activity
+  "Proteus mirabilis":          ["Cephalexin","TMP-SMX","Ciprofloxacin"],      // Amox-Clav removed — Proteus often resistant; Nitro intrinsic resistance
+  "Enterococcus faecalis":      ["Nitrofurantoin","Amoxicillin-Clavulanate"],  // Cipro (38%S) + TMP-SMX removed — unreliable coverage
+  "Staphylococcus saprophyticus":["Nitrofurantoin","TMP-SMX","Cephalexin"],
+  "Enterobacter cloacae":       ["Ciprofloxacin","TMP-SMX"],                   // Cephalexin removed — AmpC inducible resistance
+  "MRSA":                       ["TMP-SMX","Doxycycline"],                     // Linezolid removed from empiric (reserve agent)
+  "VRE (E. faecium)":           ["Linezolid","Nitrofurantoin"],                // Doxycycline removed — no reliable VRE activity
+  "ESBL E. coli":               ["TMP-SMX","Ciprofloxacin","Nitrofurantoin","Fosfomycin"], // TMP-SMX/Cipro as the "wrong" empiric drugs
+  "ESBL Klebsiella":            ["TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
+  "CRE Klebsiella":             ["TMP-SMX","Ciprofloxacin"],                   // Cephalexin removed — not empiric for Klebsiella
+  "MDR Pseudomonas":            ["Ciprofloxacin","Levofloxacin"],              // TMP-SMX removed — no Pseudomonas activity
+};
+
+// Separate empiric pool for pyelonephritis — oral agents with adequate renal parenchymal tissue levels
+// Excludes Nitrofurantoin (insufficient tissue levels for upper-tract infection) and Fosfomycin (uncomplicated cystitis only)
+const EMPIRIC_FOR_PYELO = {
+  "E. coli":               ["Cefpodoxime","Ciprofloxacin","Levofloxacin","TMP-SMX"],
+  "Klebsiella pneumoniae": ["Cefpodoxime","Ciprofloxacin","Levofloxacin"],
+  "Proteus mirabilis":     ["Cefpodoxime","Ciprofloxacin","Levofloxacin"],
+  "ESBL E. coli":          ["Ciprofloxacin","TMP-SMX","Cefpodoxime"],  // these are often resistant → escalate
+  "Pseudomonas aeruginosa":["Ciprofloxacin","Levofloxacin"],
+};
+
+// Organism-specific comorbidities for MDRO cases — makes elderly patients clinically plausible
+const MDRO_COMORBID = {
+  "ESBL E. coli":      ["type 2 diabetes mellitus","prior fluoroquinolone use within 6 months","recurrent UTIs (≥3/year) with recent antibiotic exposure"],
+  "ESBL Klebsiella":   ["type 2 diabetes and CKD stage 3","recent hospitalization within 90 days","nursing home residence with recurrent UTIs"],
+  "VRE (E. faecium)": ["prior vancomycin exposure during hospitalization","hematologic malignancy on chemotherapy","solid organ transplant on immunosuppression"],
+  "MRSA":             ["prior MRSA colonization on record","chronic hemodialysis (MWF)","prior broad-spectrum antibiotic course within 3 months"],
+  "CRE Klebsiella":   ["recent ICU admission within 90 days and prior carbapenem exposure","structural urologic abnormality with recurrent complicated UTIs","prior CRE colonization — contact precautions on file"],
+  "MDR Pseudomonas":  ["chronic obstructive lung disease with prior Pseudomonas isolates","recurrent antibiotic courses (3+ regimens past year)","structural urologic abnormality with indwelling stent"],
 };
 
 // Guaranteed non-MDRO organisms for discrepancy cases
@@ -216,8 +252,9 @@ function buildSusceptibilities(organism) {
   });
 }
 
-function buildContext(organism, caseType, age, sex) {
+function buildContext(organism, caseType, age, sex, comorbidity) {
   const s = sex==="F"?"female":"male";
+  const cmb = comorbidity || "healthcare-associated risk factors";
   const T = {
     cleared:[
       `${age}yo ${s} with 2 days of dysuria and urinary frequency. No fever, flank pain, or systemic symptoms. UA positive for leukocyte esterase and nitrites. Culture grew ${organism} >100,000 CFU/mL susceptible to prescribed empiric therapy. Consistent with uncomplicated cystitis.`,
@@ -225,19 +262,19 @@ function buildContext(organism, caseType, age, sex) {
       `${age}yo ${s} with urgency, frequency, and suprapubic discomfort ×2 days. Vitals stable, afebrile. Culture: ${organism} — susceptibility profile confirms empiric therapy. No escalation needed.`,
     ],
     discrepancy:[
-      `${age}yo ${s} with 3 days of dysuria and frequency, started on empiric therapy at clinic. Culture now finalized revealing resistance to current agent. No systemic symptoms, afebrile. Antibiogram-guided therapy change recommended per protocol.`,
-      `${age}yo ${s} referred from clinic for UTI symptoms. Empiric antibiotic prescribed at visit. Urine culture grew ${organism} with resistance to current regimen. Patient afebrile, no upper tract involvement. Oral alternative per antibiogram preferred.`,
-      `${age}yo ${s} with recurrent UTI history; culture-confirmed resistance to empiric drug. Labs otherwise unremarkable. Discharge on culture-appropriate oral antibiotic recommended.`,
+      `${age}yo ${s} with 3 days of dysuria and frequency, started on empiric therapy at clinic. Culture now finalized revealing resistance to current agent. No systemic symptoms, afebrile. Antibiogram-guided oral therapy change recommended per protocol.`,
+      `${age}yo ${s} referred from clinic for UTI symptoms. Empiric antibiotic prescribed at visit. Urine culture grew ${organism} with resistance to current regimen. Patient afebrile, no upper tract involvement. Culture-directed oral alternative per antibiogram preferred.`,
+      `${age}yo ${s} with recurrent UTI history; culture-confirmed resistance to empiric drug. Labs otherwise unremarkable. Discharge on narrower, culture-appropriate oral antibiotic recommended.`,
     ],
     pyelo:[
-      `${age}yo ${s} presenting with fever (Tmax 38.9°C), rigors, right flank pain, and costovertebral angle tenderness. Dysuria and frequency ×4 days. UA 3+ LE, many bacteria, nitrites positive. WBC 14.2k. Culture: ${organism}. Concern for acute pyelonephritis — discharged on extended-course oral antibiotic pending MD review and close follow-up.`,
-      `${age}yo ${s} with 5-day UTI history now complicated by fever, nausea, vomiting, and back pain. Culture: ${organism}. Pyelonephritis suspected — discharged on culture-appropriate oral therapy. MD callback required for clinical reassessment.`,
-      `${age}yo ${s} with recurrent UTI presenting with bilateral flank pain and fever (38.7°C). CVA tenderness bilateral. CRP elevated. Culture: ${organism}. Complex pyelonephritis — escalation to MD required, patient discharged on oral antibiotics pending MD guidance.`,
+      `${age}yo ${s} presenting with fever (Tmax 38.9°C), rigors, right flank pain, and costovertebral angle tenderness. Dysuria and frequency ×4 days. UA: 3+ LE, many bacteria, nitrites positive. WBC 14.2k. Culture: ${organism}. Mild-to-moderate pyelonephritis — discharged on Cefpodoxime 200mg BID×14d. MD callback required to confirm culture-directed therapy.`,
+      `${age}yo ${s} with 5-day UTI now complicated by low-grade fever (38.2°C), nausea, and left flank pain. Hemodynamically stable, tolerating PO fluids. Culture: ${organism}. Outpatient pyelonephritis — discharged on oral therapy per pyelo protocol. Culture now finalized; MD review for step-down or duration guidance.`,
+      `${age}yo ${s} with recurrent UTI history presenting with fever (38.7°C) and bilateral CVA tenderness. CRP elevated. Culture: ${organism}. Discharged on oral antibiotic — pyelonephritis protocol. MD escalation required to confirm appropriate agent and treatment duration.`,
     ],
     mdro:[
-      `${age}yo ${s} with healthcare-associated risk factors (recent hospitalization, prior broad-spectrum antibiotic exposure). Urine culture grew ${organism}. Multi-drug resistant profile confirmed. Discharged — limited oral options per antibiogram. MD review and ID consult recommended.`,
-      `${age}yo ${s} with history of recurrent UTIs and prior MDRO colonization on file. Culture confirmed ${organism}. Resistance to most standard oral agents. Discharged pending MD callback to confirm appropriate oral step-down therapy.`,
-      `${age}yo ${s} discharged from ED with ${organism} UTI. Resistant profile — no standard oral option confirmed susceptible. MD review required for outpatient management plan and possible ID referral.`,
+      `${age}yo ${s} with PMH significant for ${cmb}. Urine culture grew ${organism}. Multi-drug resistant profile confirmed — limited oral options per antibiogram. Discharged from ED; MD review and outpatient specialist referral recommended.`,
+      `${age}yo ${s} with ${cmb}. Prior MDRO colonization on record. Culture: ${organism} — resistant to standard empiric agents. Discharged pending urgent MD callback to confirm appropriate oral therapy or referral.`,
+      `${age}yo ${s} with ${cmb}. Recent antibiotic exposure within past 90 days. Culture: ${organism} — no confirmed susceptible oral option without MD guidance. Discharged; urgent follow-up required.`,
     ],
   };
   return rnd(T[caseType==="pyelo"?"pyelo":caseType==="mdro"?"mdro":caseType==="discrepancy"?"discrepancy":"cleared"]);
@@ -265,17 +302,43 @@ function generatePatients(count) {
     const isDiscrepancy = caseType==="discrepancy";
     const isPyelo = caseType==="pyelo";
 
+    // Age + sex distribution by clinical plausibility
+    let age, sex;
+    if(caseType==="mdro") {
+      age = rndInt(58, 85);              // MDRO: elderly patients with comorbidities
+      sex = Math.random() > 0.40 ? "F" : "M";
+    } else if(caseType==="pyelo") {
+      age = rndInt(20, 50);              // Pyelo: reproductive-age, strongly female
+      sex = Math.random() > 0.15 ? "F" : "M";
+    } else if(caseType==="cleared") {
+      age = rndInt(22, 62);              // Simple cystitis: younger patients
+      sex = Math.random() > 0.30 ? "F" : "M";
+    } else {                             // discrepancy
+      age = rndInt(28, 70);
+      sex = Math.random() > 0.35 ? "F" : "M";
+    }
+
+    // Comorbidity string for MDRO context narratives
+    const comorbidity = (caseType==="mdro" && MDRO_COMORBID[organism])
+      ? rnd(MDRO_COMORBID[organism]) : "";
+
     const activeDrug = (() => {
+      if(isPyelo) {
+        // Pyelo patients discharged on oral agent with adequate upper-tract tissue levels
+        const pCands = EMPIRIC_FOR_PYELO[organism] || ["Cefpodoxime","Ciprofloxacin"];
+        const g = pCands.filter(d=>(abxData[d]||0)>=70);
+        return g[0] || pCands[0];
+      }
       const cands = EMPIRIC_FOR[organism]||["TMP-SMX","Ciprofloxacin"];
-      if(!isDiscrepancy&&!isPyelo&&!isMDRO){
+      if(!isDiscrepancy&&!isMDRO){
         const g=cands.filter(d=>(abxData[d]||0)>=70); return g[0]||cands[0];
       }
       const b=cands.filter(d=>(abxData[d]||0)<50); return b[0]||cands[cands.length-1];
     })();
 
-    const age=rndInt(18,92), sex=Math.random()>.35?"F":"M";
+    // Gender-matched name selection (no male names on female patients)
     let fname,lname,key;
-    do{ fname=rnd(FIRST_NAMES);lname=rnd(LAST_NAMES);key=fname+lname; }while(usedNames.has(key));
+    do{ fname=sex==="F"?rnd(FEMALE_NAMES):rnd(MALE_NAMES); lname=rnd(LAST_NAMES); key=fname+lname; }while(usedNames.has(key));
     usedNames.add(key);
 
     const numAllergies=Math.random()<.5?0:Math.random()<.6?1:2;
@@ -294,8 +357,8 @@ function generatePatients(count) {
     const activePct = abxData[activeDrug]||0;
 
     if(caseType==="cleared"&&!isMDRO) status="cleared";
-    else if(isPyelo){ status="escalate"; escalateReasons.push("Pyelonephritis / upper tract involvement — MD review required"); if(isMDRO) escalateReasons.push("MDRO organism — confirm oral therapy options"); }
-    else if(isMDRO){ status="escalate"; escalateReasons.push("MDRO organism — "+organism); const sDrugs=Object.entries(abxData).filter(([,p])=>p>=70).map(([d])=>d).filter(d=>(DRUG_META[d]||{}).route==="PO"); if(sDrugs.length===0) escalateReasons.push("Limited oral antibiotic options — MD + ID consult required"); }
+    else if(isPyelo){ status="escalate"; escalateReasons.push("Pyelonephritis / upper tract involvement — MD review required"); if(isMDRO) escalateReasons.push("MDRO organism — oral therapy options require MD confirmation"); }
+    else if(isMDRO){ status="escalate"; escalateReasons.push("MDRO organism — "+organism); const sDrugs=Object.entries(abxData).filter(([,p])=>p>=70).map(([d])=>d).filter(d=>(DRUG_META[d]||{}).route==="PO"); if(sDrugs.length===0) escalateReasons.push("No susceptible oral agent confirmed — MD review required"); }
     else if(isDiscrepancy&&activePct<50) status="discrepancy";
     else status="cleared";
 
@@ -330,7 +393,7 @@ function generatePatients(count) {
       activeMedication:{ drug:activeDrug, dose:(DRUG_META[activeDrug]||{}).doseStd||"500mg BID", route:(DRUG_META[activeDrug]||{}).route||"PO", prescribedAt:new Date(collectedAt.getTime()-rndInt(6,24)*3600000).toISOString(), indication:"Empiric UTI" },
       urinalysis:ua,
       culture:{ specimenType:rnd(["Clean catch midstream","Clean catch midstream","Catheter"]), collectedAt:collectedAt.toISOString(), finalizedAt:finalizedAt.toISOString(), colonyCount:rnd([">100,000 CFU/mL",">100,000 CFU/mL","50,000–100,000 CFU/mL"]), organism, gramStain:oMeta.gram, susceptibilities, isMDRO },
-      clinicalContext:buildContext(organism,caseType,age,sex),
+      clinicalContext:buildContext(organism,caseType,age,sex,comorbidity),
       status, escalateReasons,
       requiresAdmission:false, // All patients discharged on oral antibiotics
       actionTaken:null,
@@ -383,7 +446,7 @@ function analyzePatient(patient, institution) {
     requiresAdmission:false, // All patients discharged on oral antibiotics
     limitedOralOptions,
     recommendations:recs.filter(r=>r.route==="PO").slice(0,5), // PO only recommendations
-    escalateReasons:[...patient.escalateReasons,...(limitedOralOptions&&!patient.escalateReasons.some(r=>r.includes("oral"))?["Limited oral antibiotic options — MD + ID consult required"]:[])],
+    escalateReasons:[...patient.escalateReasons,...(limitedOralOptions&&!patient.escalateReasons.some(r=>r.includes("oral"))?["No susceptible oral agent confirmed — MD review required"]:[])],
     allergyClasses:Array.from(allergyClasses),
   };
 }
@@ -604,8 +667,8 @@ function EscalateModal({ patient, analysis, onConfirm, onClose }) {
   const [sbar,setSbar]=useState({
     situation:`${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}. ${encCtx}.`,
     background:`Empiric ${patient.activeMedication.drug} for UTI. Culture: ${patient.culture.organism} (${patient.culture.colonyCount}), Gram stain: ${patient.culture.gramStain}. Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.`,
-    assessment:`Escalation required: ${analysis.escalateReasons.join("; ")}. ${analysis.limitedOralOptions?"Limited oral antibiotic options — MD + ID consult required.":""} ${analysis.isPyelo?"Clinical context consistent with pyelonephritis.":""}`,
-    recommendation:`${isPyeloOrAdmit?"Patient callback recommended — confirm appropriate oral step-down antibiotic therapy. ":""}Oral options per antibiogram: ${recNames}. ${analysis.isMDRO?"ID consult strongly recommended.":""}`,
+    assessment:`Escalation required: ${analysis.escalateReasons.join("; ")}. ${analysis.limitedOralOptions?"No susceptible oral agent confirmed — MD review required.":""} ${analysis.isPyelo?"Clinical context consistent with pyelonephritis.":""}`,
+    recommendation:`${isPyeloOrAdmit?"Patient callback recommended — confirm appropriate oral step-down antibiotic therapy. ":""}Oral options per antibiogram: ${recNames}. ${analysis.isMDRO?"MD review required for resistant organism management.":""}`,
   });
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
@@ -790,7 +853,7 @@ function PatientWorkspace({ patient, institution, onAction }) {
               {analysis.limitedOralOptions?"⚠ Limited Oral Options — MD Consult Required":analysis.isPyelo?"⚠ Pyelonephritis / Upper Tract — MD Review":analysis.isMDRO?"⚠ MDRO — Escalation Required":"⚠ Culture Resistance Discrepancy"}
             </div>
             <div className={`text-xs mt-0.5 ${analysis.limitedOralOptions?"text-amber-800":"text-red-800"}`}>
-              {analysis.limitedOralOptions?`Limited oral antibiotic options for ${patient.culture.organism}. MD + ID consult recommended. Patient discharged.`:analysis.isPyelo?"Upper tract infection. Extended oral therapy + MD callback required.":analysis.isMDRO?`${patient.culture.organism} is MDRO. Confirm oral step-down therapy with MD.`:`${patient.activeMedication.drug} RESISTANT. Culture-guided oral change recommended.`}
+              {analysis.limitedOralOptions?`No susceptible oral agent confirmed for ${patient.culture.organism}. MD review required. Patient discharged.`:analysis.isPyelo?"Upper tract infection. Extended oral therapy + MD callback required.":analysis.isMDRO?`${patient.culture.organism} is MDRO. MD review required for oral step-down therapy.`:`${patient.activeMedication.drug} RESISTANT. Culture-guided oral change recommended.`}
             </div>
           </div>
         )}
@@ -1320,7 +1383,7 @@ function App() {
                 onClick={()=>setActiveTab("rn")}
                 className={`px-3 py-1.5 transition-colors ${activeTab==="rn" ? "bg-white" : "bg-transparent text-white/80 hover:bg-white/10"}`}
                 style={activeTab==="rn" ? {color:"#1565C0"} : {}}>
-                👩‍⚕️ RN Review
+                🩺 RN Review
               </button>
               <button
                 onClick={()=>setActiveTab("md")}
@@ -1348,12 +1411,12 @@ function App() {
                 style={{background: activeTab==="md" ? "#2E7D32" : "#1565C0", borderColor: activeTab==="md" ? "#4CAF50" : "#42A5F5"}}
                 value={institution} onChange={e=>{setInstitution(e.target.value);setCustomABG(null);}}>
                 <option value="stanford">Stanford</option>
-                <option value="mgh">Harvard MGH</option>
+                <option value="mgh">NYC H+H Elmhurst</option>
               </select>
               {/* Desktop: pill buttons */}
               <div className="hidden md:flex rounded overflow-hidden text-xs"
                 style={{border: `1px solid ${activeTab==="md" ? "#4CAF50" : "#42A5F5"}`}}>
-                {[{id:"stanford",label:"Stanford"},{id:"mgh",label:"Harvard MGH"}].map(opt=>(
+                {[{id:"stanford",label:"Stanford"},{id:"mgh",label:"NYC H+H Elmhurst"}].map(opt=>(
                   <button key={opt.id} onClick={()=>{setInstitution(opt.id);setCustomABG(null);}}
                     className="px-3 py-1.5 font-medium transition-colors"
                     style={!customABG&&institution===opt.id
