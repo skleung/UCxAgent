@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>UCx AI Agent — RN Culture Review</title>
+  <title>UCx AI Agent — RN Culture Review &amp; MD Dashboard</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -162,20 +162,21 @@ const ALLERGIES_POOL = [
 const PROVIDERS = ["Dr. Priya Anand","Dr. Mark Sullivan","Dr. Rachel Kim","Dr. James Okafor","Dr. Sofia Nguyen","Dr. David Chen","Dr. Amara Osei","Dr. Laura Reyes","Dr. Michael Torres","Dr. Fatima Al-Rashid","Dr. Samuel Park","Dr. Jessica Wu"];
 const UNITS = ["3N-408","3N-412","4S-201","4S-215","ICU-3","ICU-7","2W-118","2W-122","5E-309","5E-317","Obs-6","Obs-11"];
 
+// All empiric drugs are PO — patients discharged on oral antibiotics only
 const EMPIRIC_FOR = {
   "E. coli":                 ["Nitrofurantoin","TMP-SMX","Ciprofloxacin","Cephalexin"],
   "Klebsiella pneumoniae":   ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
-  "Pseudomonas aeruginosa":  ["Ciprofloxacin","Cephalexin","TMP-SMX"],
+  "Pseudomonas aeruginosa":  ["Ciprofloxacin","Levofloxacin","TMP-SMX"],
   "Proteus mirabilis":       ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
   "Enterococcus faecalis":   ["Nitrofurantoin","Amoxicillin-Clavulanate","Ciprofloxacin","TMP-SMX"],
   "Staphylococcus saprophyticus":["Nitrofurantoin","Cephalexin","TMP-SMX"],
   "Enterobacter cloacae":    ["Ciprofloxacin","TMP-SMX","Cephalexin"],
-  "MRSA":                    ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
-  "VRE (E. faecium)":        ["Ampicillin","Nitrofurantoin","Ciprofloxacin"],
-  "ESBL E. coli":            ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate","Nitrofurantoin"],
-  "ESBL Klebsiella":         ["Cephalexin","TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
-  "CRE Klebsiella":          ["Cephalexin","Meropenem","TMP-SMX"],
-  "MDR Pseudomonas":         ["Ciprofloxacin","Piperacillin-Tazobactam","Cefepime"],
+  "MRSA":                    ["TMP-SMX","Doxycycline","Linezolid"],
+  "VRE (E. faecium)":        ["Linezolid","Nitrofurantoin","Doxycycline"],
+  "ESBL E. coli":            ["Nitrofurantoin","Fosfomycin","TMP-SMX","Ciprofloxacin"],
+  "ESBL Klebsiella":         ["TMP-SMX","Ciprofloxacin","Amoxicillin-Clavulanate"],
+  "CRE Klebsiella":          ["TMP-SMX","Ciprofloxacin","Cephalexin"],
+  "MDR Pseudomonas":         ["Ciprofloxacin","Levofloxacin","TMP-SMX"],
 };
 
 // Guaranteed non-MDRO organisms for discrepancy cases
@@ -229,14 +230,14 @@ function buildContext(organism, caseType, age, sex) {
       `${age}yo ${s} with recurrent UTI history; culture-confirmed resistance to empiric drug. Labs otherwise unremarkable. Discharge on culture-appropriate oral antibiotic recommended.`,
     ],
     pyelo:[
-      `${age}yo ${s} presenting with fever (Tmax 38.9°C), rigors, right flank pain, and costovertebral angle tenderness. Dysuria and frequency ×4 days. UA 3+ LE, many bacteria, nitrites positive. WBC 14.2k. Culture: ${organism}. Concern for acute pyelonephritis — IV antibiotics and likely admission required.`,
-      `${age}yo ${s} with 5-day UTI history now complicated by fever, nausea, vomiting, and back pain. Systemically ill appearing. CBC: WBC 16.5k with left shift. Culture: ${organism}. Pyelonephritis suspected — IV therapy warranted.`,
-      `${age}yo ${s} with recurrent UTI presenting with bilateral flank pain and fever (38.7°C). CVA tenderness bilateral. CRP elevated. Culture: ${organism}. Complex pyelonephritis — IV antibiotics indicated, escalation to MD required.`,
+      `${age}yo ${s} presenting with fever (Tmax 38.9°C), rigors, right flank pain, and costovertebral angle tenderness. Dysuria and frequency ×4 days. UA 3+ LE, many bacteria, nitrites positive. WBC 14.2k. Culture: ${organism}. Concern for acute pyelonephritis — discharged on extended-course oral antibiotic pending MD review and close follow-up.`,
+      `${age}yo ${s} with 5-day UTI history now complicated by fever, nausea, vomiting, and back pain. Culture: ${organism}. Pyelonephritis suspected — discharged on culture-appropriate oral therapy. MD callback required for clinical reassessment.`,
+      `${age}yo ${s} with recurrent UTI presenting with bilateral flank pain and fever (38.7°C). CVA tenderness bilateral. CRP elevated. Culture: ${organism}. Complex pyelonephritis — escalation to MD required, patient discharged on oral antibiotics pending MD guidance.`,
     ],
     mdro:[
-      `${age}yo ${s} with healthcare-associated risk factors (recent hospitalization, prior broad-spectrum antibiotic exposure). Urine culture grew ${organism}. Multi-drug resistant profile confirmed. No oral options available per institutional antibiogram — IV therapy required. Likely requires admission. ID consult recommended.`,
-      `${age}yo ${s} with history of recurrent UTIs and prior MDRO colonization on file. Culture confirmed ${organism}. All standard oral agents resistant. IV antibiotics indicated; patient likely requires hospital admission. Notify MD, consider ID consultation.`,
-      `${age}yo ${s} from long-term care facility with indwelling urinary catheter. Culture: ${organism} — pan-resistant profile. No susceptible oral agents. Escalate to MD for admission planning.`,
+      `${age}yo ${s} with healthcare-associated risk factors (recent hospitalization, prior broad-spectrum antibiotic exposure). Urine culture grew ${organism}. Multi-drug resistant profile confirmed. Discharged — limited oral options per antibiogram. MD review and ID consult recommended.`,
+      `${age}yo ${s} with history of recurrent UTIs and prior MDRO colonization on file. Culture confirmed ${organism}. Resistance to most standard oral agents. Discharged pending MD callback to confirm appropriate oral step-down therapy.`,
+      `${age}yo ${s} discharged from ED with ${organism} UTI. Resistant profile — no standard oral option confirmed susceptible. MD review required for outpatient management plan and possible ID referral.`,
     ],
   };
   return rnd(T[caseType==="pyelo"?"pyelo":caseType==="mdro"?"mdro":caseType==="discrepancy"?"discrepancy":"cleared"]);
@@ -286,15 +287,15 @@ function generatePatients(count) {
     const collectedAt = new Date(Date.now()-colDaysAgo*86400000-rndInt(2,8)*3600000);
     const finalizedAt = new Date(collectedAt.getTime()+rndInt(24,48)*3600000);
     const encounterDate = new Date(collectedAt.getTime()-rndInt(0,12)*3600000).toISOString().slice(0,10);
-    const isDischarge = Math.random()<.72;
+    const isDischarge = true; // All patients discharged on oral antibiotics
     const phone=`(${rndInt(415,916)}) ${rndInt(200,999)}-${String(rndInt(1000,9999))}`;
 
     let status="cleared", escalateReasons=[];
     const activePct = abxData[activeDrug]||0;
 
     if(caseType==="cleared"&&!isMDRO) status="cleared";
-    else if(isPyelo){ status="escalate"; escalateReasons.push("Pyelonephritis / upper tract involvement"); if(isMDRO) escalateReasons.push("MDRO organism"); }
-    else if(isMDRO){ status="escalate"; escalateReasons.push("MDRO organism — "+organism); const sDrugs=Object.entries(abxData).filter(([,p])=>p>=70).map(([d])=>d); if(sDrugs.length===0||sDrugs.every(d=>(DRUG_META[d]||{}).route==="IV")) escalateReasons.push("No oral antibiotic options — IV therapy required"); }
+    else if(isPyelo){ status="escalate"; escalateReasons.push("Pyelonephritis / upper tract involvement — MD review required"); if(isMDRO) escalateReasons.push("MDRO organism — confirm oral therapy options"); }
+    else if(isMDRO){ status="escalate"; escalateReasons.push("MDRO organism — "+organism); const sDrugs=Object.entries(abxData).filter(([,p])=>p>=70).map(([d])=>d).filter(d=>(DRUG_META[d]||{}).route==="PO"); if(sDrugs.length===0) escalateReasons.push("Limited oral antibiotic options — MD + ID consult required"); }
     else if(isDiscrepancy&&activePct<50) status="discrepancy";
     else status="cleared";
 
@@ -331,7 +332,7 @@ function generatePatients(count) {
       culture:{ specimenType:rnd(["Clean catch midstream","Clean catch midstream","Catheter"]), collectedAt:collectedAt.toISOString(), finalizedAt:finalizedAt.toISOString(), colonyCount:rnd([">100,000 CFU/mL",">100,000 CFU/mL","50,000–100,000 CFU/mL"]), organism, gramStain:oMeta.gram, susceptibilities, isMDRO },
       clinicalContext:buildContext(organism,caseType,age,sex),
       status, escalateReasons,
-      requiresAdmission:escalateReasons.some(r=>r.includes("IV therapy")||r.includes("No oral")),
+      requiresAdmission:false, // All patients discharged on oral antibiotics
       actionTaken:null,
     };
   });
@@ -373,15 +374,16 @@ function analyzePatient(patient, institution) {
 
   const allSusc=Object.entries(orgGram).filter(([,p])=>p>=60).map(([d])=>d);
   const oralOpts=allSusc.filter(d=>(DRUG_META[d]||{}).route==="PO");
-  const requiresAdmission=oralOpts.length===0&&allSusc.length>0;
+  const limitedOralOptions=oralOpts.length===0&&allSusc.length>0;
 
   return {
     cultureInterp, isResistant,
     isPyelo:hasPyelo(patient.clinicalContext),
     isMDRO:patient.culture.isMDRO,
-    requiresAdmission,
-    recommendations:recs.slice(0,5),
-    escalateReasons:[...patient.escalateReasons,...(requiresAdmission&&!patient.escalateReasons.some(r=>r.includes("oral"))?["No oral antibiotic options — IV therapy required"]:[])],
+    requiresAdmission:false, // All patients discharged on oral antibiotics
+    limitedOralOptions,
+    recommendations:recs.filter(r=>r.route==="PO").slice(0,5), // PO only recommendations
+    escalateReasons:[...patient.escalateReasons,...(limitedOralOptions&&!patient.escalateReasons.some(r=>r.includes("oral"))?["Limited oral antibiotic options — MD + ID consult required"]:[])],
     allergyClasses:Array.from(allergyClasses),
   };
 }
@@ -443,7 +445,7 @@ function PatientCard({ patient, isSelected, onClick }) {
             <div className="font-semibold text-gray-900 text-sm truncate">{patient.name.last}, {patient.name.first}</div>
             <div className="text-xs text-gray-500 mt-0.5">{patient.age}yo {patient.sex} · {patient.mrn}</div>
             <div className="text-xs text-gray-400 truncate">
-              {patient.isDischarge?`📤 DC'd ${fmtDate(patient.encounterDate)}`:`🏥 ${patient.unit}`}
+              📤 DC'd {fmtDate(patient.encounterDate)}
               {" · "}{patient.encounterMD.replace("Dr. ","")}
             </div>
           </div>
@@ -480,7 +482,7 @@ BACKGROUND: Empiric ${patient.activeMedication.drug} prescribed for UTI. Culture
 
 ASSESSMENT: Culture-guided change indicated. ${patient.culture.organism} susceptible to ${selected||"[select]"} per antibiogram. Afebrile, no upper tract symptoms — RN protocol change appropriate.
 
-RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Start ${selected||"[select]"} ${(DRUG_META[selected]||{}).doseStd||""}. ${patient.isDischarge?"Patient discharged — callback required.":""}`;
+RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Start ${selected||"[select]"} ${(DRUG_META[selected]||{}).doseStd||""}. Patient discharged — callback required.`;
 
   if(showCallback) return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
@@ -547,7 +549,7 @@ RECOMMENDATION: Discontinue ${patient.activeMedication.drug}. Start ${selected||
         <div className="px-5 py-3 border-t flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2">
           <button onClick={onClose} className="w-full sm:w-auto px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg">Cancel</button>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            {patient.isDischarge&&selected&&(
+            {selected&&(
               <button onClick={()=>setShowCallback(true)} className="w-full sm:w-auto px-4 py-2 text-sm font-semibold border border-green-500 text-green-700 hover:bg-green-50 rounded-lg">📞 Confirm + Call Patient</button>
             )}
             <button onClick={()=>onConfirm(selected,sbar,false)} disabled={!selected} className="w-full sm:w-auto px-5 py-2 text-sm font-semibold bg-[#1976D2] hover:bg-[#1565C0] text-white rounded-lg disabled:opacity-40">
@@ -568,7 +570,7 @@ Culture: ${patient.culture.organism} (${patient.culture.colonyCount}) — RESIST
 
 AI-recommended alternatives per ${(ANTIBIOGRAMS.stanford.name)} antibiogram: ${recText}.
 
-Please advise on antibiotic selection, dosing, renal adjustment, and formulary availability. ${patient.isDischarge?"Patient discharged — callback coordination may be needed.":"Patient currently admitted to "+patient.unit+"."}
+Please advise on antibiotic selection, dosing, renal adjustment, and formulary availability. Patient discharged — callback coordination may be needed.
 
 Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.`);
   return (
@@ -597,13 +599,13 @@ Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [
 
 function EscalateModal({ patient, analysis, onConfirm, onClose }) {
   const recNames=analysis.recommendations.slice(0,3).map(r=>`${r.drug} (${r.susceptPct}%S, ${r.route})`).join("; ")||"Limited options per antibiogram";
-  const isPyeloOrAdmit=analysis.isPyelo||analysis.requiresAdmission;
-  const encCtx=`Encounter ${fmtDate(patient.encounterDate)} with ${patient.encounterMD}${patient.isDischarge?" — patient discharged, callback required":" — patient in "+patient.unit}`;
+  const isPyeloOrAdmit=analysis.isPyelo||analysis.limitedOralOptions;
+  const encCtx=`Encounter ${fmtDate(patient.encounterDate)} with ${patient.encounterMD} — patient discharged, callback required`;
   const [sbar,setSbar]=useState({
     situation:`${patient.name.first} ${patient.name.last} (${patient.mrn}), ${patient.age}yo ${patient.sex}. ${encCtx}.`,
     background:`Empiric ${patient.activeMedication.drug} for UTI. Culture: ${patient.culture.organism} (${patient.culture.colonyCount}), Gram stain: ${patient.culture.gramStain}. Allergies: ${patient.allergies.length?patient.allergies.map(a=>`${a.substance} [${a.severity}]`).join(", "):"NKDA"}.`,
-    assessment:`Escalation required: ${analysis.escalateReasons.join("; ")}. ${analysis.requiresAdmission?"No susceptible oral antibiotics — IV therapy required.":""} ${analysis.isPyelo?"Clinical context consistent with pyelonephritis.":""}`,
-    recommendation:`${isPyeloOrAdmit?"Patient callback recommended — likely requires hospital admission for IV antibiotic therapy. ":""}Options per antibiogram: ${recNames}. ${analysis.isMDRO?"ID consult strongly recommended.":""}`,
+    assessment:`Escalation required: ${analysis.escalateReasons.join("; ")}. ${analysis.limitedOralOptions?"Limited oral antibiotic options — MD + ID consult required.":""} ${analysis.isPyelo?"Clinical context consistent with pyelonephritis.":""}`,
+    recommendation:`${isPyeloOrAdmit?"Patient callback recommended — confirm appropriate oral step-down antibiotic therapy. ":""}Oral options per antibiogram: ${recNames}. ${analysis.isMDRO?"ID consult strongly recommended.":""}`,
   });
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
@@ -611,7 +613,7 @@ function EscalateModal({ patient, analysis, onConfirm, onClose }) {
         <div className={`flex items-center justify-between px-5 py-4 border-b flex-shrink-0 ${isPyeloOrAdmit?"bg-amber-50":""}`}>
           <div>
             <h2 className="text-base font-bold text-gray-900">Escalate to MD</h2>
-            {isPyeloOrAdmit&&<p className="text-xs text-amber-700 font-medium mt-0.5">⚠ Patient callback likely required — admission recommended</p>}
+            {isPyeloOrAdmit&&<p className="text-xs text-amber-700 font-medium mt-0.5">⚠ Patient callback required — oral antibiotic step-down review needed</p>}
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl p-1">&times;</button>
         </div>
@@ -622,12 +624,10 @@ function EscalateModal({ patient, analysis, onConfirm, onClose }) {
               <ul className="text-xs text-orange-700 space-y-0.5">{analysis.escalateReasons.map((r,i)=><li key={i} className="flex gap-2"><span>•</span>{r}</li>)}</ul>
             </div>
           )}
-          {patient.isDischarge&&(
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
-              <div className="text-sm text-blue-800"><span className="font-semibold">📞 Patient callback:</span> {patient.phone}</div>
-              <button onClick={()=>navigator.clipboard?.writeText(patient.phone)} className="text-xs px-2 py-1 border border-blue-300 rounded text-blue-700 hover:bg-blue-100 flex-shrink-0">Copy</button>
-            </div>
-          )}
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
+            <div className="text-sm text-blue-800"><span className="font-semibold">📞 Patient callback:</span> {patient.phone}</div>
+            <button onClick={()=>navigator.clipboard?.writeText(patient.phone)} className="text-xs px-2 py-1 border border-blue-300 rounded text-blue-700 hover:bg-blue-100 flex-shrink-0">Copy</button>
+          </div>
           {[{k:"situation",l:"SITUATION"},{k:"background",l:"BACKGROUND"},{k:"assessment",l:"ASSESSMENT"},{k:"recommendation",l:"RECOMMENDATION"}].map(({k,l})=>(
             <div key={k}>
               <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">{l}</div>
@@ -674,9 +674,7 @@ function PatientWorkspace({ patient, institution, onAction }) {
             <div className="text-blue-100 text-xs mt-0.5">{patient.age}yo {patient.sex==="F"?"Female":"Male"} · DOB {fmtDate(patient.dob)} · {patient.mrn}</div>
             <div className="text-blue-200 text-xs mt-0.5 flex flex-wrap items-center gap-1">
               <span className="truncate">Enc: {fmtDate(patient.encounterDate)} · {patient.encounterMD.replace("Dr. ","Dr. ")}</span>
-              {patient.isDischarge
-                ? <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs flex-shrink-0">📤 DC'd</span>
-                : <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs flex-shrink-0">🏥 {patient.unit}</span>}
+              <span className="bg-blue-800/60 text-blue-100 px-1.5 py-0.5 rounded text-xs flex-shrink-0">📤 Discharged</span>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -776,7 +774,7 @@ function PatientWorkspace({ patient, institution, onAction }) {
       </div>
 
       {/* ── AI Decision Panel (sticky bottom) ── */}
-      <div className={`border-t flex-shrink-0 ${analysis.requiresAdmission?"bg-amber-50 border-amber-200":effStatus==="discrepancy"||effStatus==="escalate"?"bg-red-50 border-red-200":effStatus==="cleared"?"bg-green-50 border-green-200":effStatus==="pharmacy"?"bg-teal-50 border-teal-200":"bg-epic-sectionBg border-[#BBDEFB]"} p-3 sm:p-4`}>
+      <div className={`border-t flex-shrink-0 ${analysis.limitedOralOptions?"bg-amber-50 border-amber-200":effStatus==="discrepancy"||effStatus==="escalate"?"bg-red-50 border-red-200":effStatus==="cleared"?"bg-green-50 border-green-200":effStatus==="pharmacy"?"bg-teal-50 border-teal-200":"bg-epic-sectionBg border-[#BBDEFB]"} p-3 sm:p-4`}>
 
         {/* Banner */}
         {patient.actionTaken ? (
@@ -787,12 +785,12 @@ function PatientWorkspace({ patient, institution, onAction }) {
             <button onClick={()=>{ if(patient.actionTaken.type==="changed")setShowChangeRx(true); else if(patient.actionTaken.type==="pharmacy")setShowPharmacy(true); else setShowEscalate(true); }} className="text-xs px-2 py-1 border rounded hover:bg-white/60 flex-shrink-0">Revise</button>
           </div>
         ) : (effStatus==="discrepancy"||effStatus==="escalate")&&(
-          <div className={`mb-3 p-2.5 rounded-lg border ${analysis.requiresAdmission?"bg-amber-100 border-amber-300":"bg-red-100 border-red-300"}`}>
-            <div className={`text-sm font-bold ${analysis.requiresAdmission?"text-amber-900":"text-red-900"}`}>
-              {analysis.requiresAdmission?"⚠ Likely Admission — No Oral Options":analysis.isPyelo?"⚠ Pyelonephritis / Upper Tract":analysis.isMDRO?"⚠ MDRO — Escalation Required":"⚠ Culture Resistance Discrepancy"}
+          <div className={`mb-3 p-2.5 rounded-lg border ${analysis.limitedOralOptions?"bg-amber-100 border-amber-300":"bg-red-100 border-red-300"}`}>
+            <div className={`text-sm font-bold ${analysis.limitedOralOptions?"text-amber-900":"text-red-900"}`}>
+              {analysis.limitedOralOptions?"⚠ Limited Oral Options — MD Consult Required":analysis.isPyelo?"⚠ Pyelonephritis / Upper Tract — MD Review":analysis.isMDRO?"⚠ MDRO — Escalation Required":"⚠ Culture Resistance Discrepancy"}
             </div>
-            <div className={`text-xs mt-0.5 ${analysis.requiresAdmission?"text-amber-800":"text-red-800"}`}>
-              {analysis.requiresAdmission?`No oral antibiotics for ${patient.culture.organism}. IV therapy required.${patient.isDischarge?" Discharged — callback for admission coordination.":""}`:analysis.isPyelo?"Upper tract infection. IV antibiotics + MD review indicated.":analysis.isMDRO?`${patient.culture.organism} is MDRO. Standard protocol unavailable.`:`${patient.activeMedication.drug} RESISTANT. Culture-guided change recommended.`}
+            <div className={`text-xs mt-0.5 ${analysis.limitedOralOptions?"text-amber-800":"text-red-800"}`}>
+              {analysis.limitedOralOptions?`Limited oral antibiotic options for ${patient.culture.organism}. MD + ID consult recommended. Patient discharged.`:analysis.isPyelo?"Upper tract infection. Extended oral therapy + MD callback required.":analysis.isMDRO?`${patient.culture.organism} is MDRO. Confirm oral step-down therapy with MD.`:`${patient.activeMedication.drug} RESISTANT. Culture-guided oral change recommended.`}
             </div>
           </div>
         )}
@@ -834,7 +832,7 @@ function PatientWorkspace({ patient, institution, onAction }) {
               </button>
             </div>
             <button onClick={()=>setShowEscalate(true)}
-              className={`w-full sm:flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold text-white shadow transition-all ${analysis.requiresAdmission||analysis.isPyelo?"bg-amber-600 hover:bg-amber-700 pulse-amber":"bg-orange-600 hover:bg-orange-700"} ${mustEscalate?"ring-2 ring-offset-1 ring-orange-400":""}`}>
+              className={`w-full sm:flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold text-white shadow transition-all ${analysis.isPyelo||analysis.limitedOralOptions?"bg-amber-600 hover:bg-amber-700 pulse-amber":"bg-orange-600 hover:bg-orange-700"} ${mustEscalate?"ring-2 ring-offset-1 ring-orange-400":""}`}>
               📞 Escalate to MD
             </button>
           </div>
@@ -855,12 +853,400 @@ function PatientWorkspace({ patient, institution, onAction }) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   MD DASHBOARD COMPONENTS
+══════════════════════════════════════════════════════════ */
+
+// Generate a 1-paragraph AI summary for MD review
+function buildMDSummary(patient, analysis) {
+  const org = patient.culture.organism;
+  const drug = patient.activeMedication.drug;
+  const reasons = analysis.escalateReasons.join("; ");
+  const topRec = analysis.recommendations[0];
+  const recText = topRec ? `Top oral recommendation: ${topRec.drug} (${topRec.susceptPct}%S, ${topRec.dose}).` : "No standard oral options per antibiogram.";
+  const allergyNote = patient.allergies.length ? `Allergies: ${patient.allergies.map(a=>a.substance).join(", ")}.` : "NKDA.";
+  return `${patient.name.first} ${patient.name.last} (${patient.age}yo ${patient.sex}, ${patient.mrn}) was discharged on ${drug} for UTI (${fmtDate(patient.encounterDate)}, ${patient.encounterMD}). Culture grew ${org} (${patient.culture.colonyCount}). RN escalated for: ${reasons}. ${allergyNote} ${recText} Patient phone: ${patient.phone}.`;
+}
+
+function MDPatientRow({ patient, isSelected, onClick }) {
+  const resolved = !!patient.mdAction;
+  const borderColor = resolved ? "border-green-500" : "border-orange-400";
+  const bgColor = isSelected ? "bg-green-50" : resolved ? "bg-white" : "bg-white";
+  return (
+    <div onClick={onClick} className={`border-l-4 ${borderColor} ${bgColor} mx-2 mb-1.5 rounded-r-lg cursor-pointer transition-all shadow-sm hover:bg-green-50 active:bg-green-100 ${isSelected?"ring-2 ring-green-600 ring-inset":""}`}>
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-gray-900 text-sm truncate">
+              {resolved && <span className="mr-1">✅</span>}
+              {patient.name.last}, {patient.name.first}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">{patient.age}yo {patient.sex} · {patient.mrn}</div>
+            <div className="text-xs text-gray-400 truncate italic">{patient.culture.organism}</div>
+          </div>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            {resolved
+              ? <span className="text-xs bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 rounded font-semibold">MD Resolved</span>
+              : <span className="text-xs bg-orange-100 text-orange-800 border border-orange-300 px-2 py-0.5 rounded font-semibold">Awaiting MD</span>}
+          </div>
+        </div>
+        {patient.escalateReasons?.length>0 && !resolved && (
+          <div className="mt-1.5 text-xs text-orange-700 bg-orange-50 rounded px-2 py-1 border border-orange-200">
+            {patient.escalateReasons.join(" · ")}
+          </div>
+        )}
+        {patient.phone && !resolved && (
+          <div className="mt-1 text-xs text-gray-400">📞 {patient.phone}</div>
+        )}
+        {resolved && (
+          <div className="mt-1 text-xs text-green-700 font-medium">
+            ✓ {patient.mdAction.type==="approved"?"Approved AI rec":patient.mdAction.type==="changed"?`Changed → ${patient.mdAction.drug}`:"Noted & closed"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MDWorkspace({ patient, institution, onMDAction }) {
+  const analysis = useMemo(()=>analyzePatient(patient,institution),[patient,institution]);
+  const aiSummary = useMemo(()=>buildMDSummary(patient,analysis),[patient,analysis]);
+  const [editedSummary, setEditedSummary] = useState(aiSummary);
+  const [selectedDrug, setSelectedDrug] = useState(analysis.recommendations[0]?.drug||"");
+  const [note, setNote] = useState("");
+  const [expanded, setExpanded] = useState({ summary:true, culture:false, ua:false });
+  const toggle = k => setExpanded(p=>({...p,[k]:!p[k]}));
+
+  const poRecs = analysis.recommendations.filter(r=>(DRUG_META[r.drug]||{}).route==="PO");
+
+  if(patient.mdAction) return (
+    <div className="h-full flex flex-col bg-white">
+      <div className="px-4 py-3 border-b flex-shrink-0" style={{background:"#2E7D32"}}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-white leading-tight">{patient.name.last}, {patient.name.first}</h2>
+            <div className="text-green-100 text-xs mt-0.5">{patient.age}yo {patient.sex} · {patient.mrn} · {fmtDate(patient.encounterDate)}</div>
+          </div>
+          <StatusBadge status="reviewed"/>
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="text-4xl mb-3">✅</div>
+          <div className="text-lg font-bold text-green-800">MD Review Complete</div>
+          <div className="text-sm text-gray-600 mt-2">{patient.mdAction.type==="approved"?"Approved RN recommendation":patient.mdAction.type==="changed"?`Changed antibiotic to ${patient.mdAction.drug}`:"Acknowledged — no change required"}</div>
+          <div className="text-xs text-gray-400 mt-1">{fmtDateTime(patient.mdAction.timestamp)}</div>
+          {patient.mdAction.note&&<div className="mt-3 p-3 bg-gray-50 border rounded-lg text-xs text-gray-700 text-left">{patient.mdAction.note}</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-full flex flex-col bg-white">
+      {/* MD Patient Header — green theme */}
+      <div className="px-4 sm:px-5 py-3 border-b flex-shrink-0" style={{background:"#2E7D32"}}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-white leading-tight truncate">{patient.name.last}, {patient.name.first}</h2>
+            <div className="text-green-100 text-xs mt-0.5">{patient.age}yo {patient.sex==="F"?"Female":"Male"} · DOB {fmtDate(patient.dob)} · {patient.mrn}</div>
+            <div className="text-green-200 text-xs mt-0.5 flex flex-wrap items-center gap-1">
+              <span>Enc: {fmtDate(patient.encounterDate)} · {patient.encounterMD}</span>
+              <span className="bg-green-900/60 text-green-100 px-1.5 py-0.5 rounded text-xs flex-shrink-0">📤 Discharged</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <StatusBadge status={patient.status}/>
+            {patient.allergies.length>0
+              ? <div className="flex flex-wrap gap-1 justify-end">{patient.allergies.map((a,i)=><AllergyChip key={i} al={a}/>)}</div>
+              : <span className="text-xs text-green-200 bg-green-900/50 px-2 py-0.5 rounded">NKDA</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Escalation reasons banner */}
+      {analysis.escalateReasons.length>0&&(
+        <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 flex-shrink-0">
+          <div className="text-xs font-semibold text-orange-800 mb-0.5">RN Escalation Triggers:</div>
+          <div className="flex flex-wrap gap-1">{analysis.escalateReasons.map((r,i)=>(
+            <span key={i} className="text-xs bg-orange-100 text-orange-800 border border-orange-300 px-2 py-0.5 rounded">{r}</span>
+          ))}</div>
+        </div>
+      )}
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-3 sm:p-4 pb-2">
+
+        {/* AI Summary */}
+        <AccordionSection title="AI Clinical Summary" badge="RN Escalation" expanded={expanded.summary} onToggle={()=>toggle("summary")}>
+          <div className="mb-2 text-xs text-gray-500">Review and edit before signing. Auto-generated from culture, antibiogram, and RN assessment.</div>
+          <textarea
+            className="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none leading-relaxed"
+            rows={5}
+            value={editedSummary}
+            onChange={e=>setEditedSummary(e.target.value)}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {poRecs.slice(0,3).map((rec,i)=>(
+              <div key={rec.drug} className="bg-white rounded-lg border border-gray-200 px-3 py-2 flex items-center gap-2 shadow-sm">
+                <span className="text-xs text-gray-400 font-bold">#{i+1}</span>
+                <div>
+                  <div className="text-sm font-bold text-gray-900">{rec.drug}</div>
+                  <div className="text-xs text-gray-500">{rec.dose}</div>
+                </div>
+                <span className={`text-xs px-1.5 py-0.5 rounded font-bold ml-1 ${rec.susceptPct>=90?"bg-green-100 text-green-800":rec.susceptPct>=75?"bg-blue-100 text-blue-800":"bg-yellow-100 text-yellow-800"}`}>{rec.susceptPct}%S</span>
+              </div>
+            ))}
+          </div>
+        </AccordionSection>
+
+        {/* Culture quick-view */}
+        <AccordionSection title="Culture Results" badge={patient.culture.organism} expanded={expanded.culture} onToggle={()=>toggle("culture")}>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {[["Organism",patient.culture.organism],["Colony Count",patient.culture.colonyCount],["Gram Stain",patient.culture.gramStain],["Specimen",patient.culture.specimenType]].map(([k,v])=>(
+              <div key={k} className="bg-epic-sectionBg rounded-lg p-2 border border-[#BBDEFB]">
+                <div className="text-xs text-gray-400 uppercase tracking-wide">{k}</div>
+                <div className={`text-xs font-semibold mt-0.5 ${k==="Organism"?"italic":""}`}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-epic-sectionBg px-3 py-2 border-b text-xs font-semibold text-epic-dark uppercase tracking-wide">Susceptibility (PO agents highlighted)</div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[280px]">
+                <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                  <tr><th className="px-3 py-1.5 text-left">Antibiotic</th><th className="px-3 py-1.5 text-center">Route</th><th className="px-3 py-1.5 text-center">Result</th></tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {patient.culture.susceptibilities.map((s,i)=>{
+                    const isPO=(DRUG_META[s.drug]||{}).route==="PO";
+                    const isActive=s.drug===patient.activeMedication.drug;
+                    return <tr key={i} className={`${isActive?"font-semibold":""} ${isPO?"bg-green-50/40":""}`}>
+                      <td className="px-3 py-2 text-xs">
+                        {s.drug}
+                        {isActive&&<span className="ml-1 text-xs bg-[#BBDEFB] text-epic-dark px-1 py-0.5 rounded">Active</span>}
+                        {isPO&&!isActive&&<span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">PO</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center text-xs text-gray-500">{(DRUG_META[s.drug]||{}).route||"PO"}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${s.interpretation==="S"?"bg-green-100 text-green-800":s.interpretation==="I"?"bg-yellow-100 text-yellow-800":"bg-red-100 text-red-800"}`}>
+                          {s.interpretation==="S"?"S":s.interpretation==="I"?"I":"R"}
+                        </span>
+                      </td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </AccordionSection>
+
+        {/* UA quick-view */}
+        <AccordionSection title="Urinalysis" badge={patient.urinalysis.leukocyteEsterase+" LE"} expanded={expanded.ua} onToggle={()=>toggle("ua")}>
+          <div className="grid grid-cols-2 gap-px bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+            {[["WBC",patient.urinalysis.wbc],["Nitrite",patient.urinalysis.nitrite],["Leukocyte Esterase",patient.urinalysis.leukocyteEsterase],["Bacteria",patient.urinalysis.bacteria]].map(([label,val])=>(
+              <div key={label} className="bg-white px-3 py-2 flex justify-between items-center gap-2">
+                <span className="text-xs text-gray-500 flex-shrink-0">{label}</span>
+                <span className={`text-xs font-semibold text-right ${(val==="Many"||val==="3+"||val==="+"||val?.includes(">100"))?"text-red-700":""}`}>{val}</span>
+              </div>
+            ))}
+          </div>
+        </AccordionSection>
+
+        {/* MD note */}
+        <div className="mb-3">
+          <div className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">MD Note (optional)</div>
+          <textarea
+            className="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+            rows={3}
+            placeholder="Add clinical note, rationale, or follow-up instructions..."
+            value={note}
+            onChange={e=>setNote(e.target.value)}
+          />
+        </div>
+
+        {/* Drug selection for Change Rx */}
+        {poRecs.length>0&&(
+          <div className="mb-3">
+            <div className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Select Antibiotic (for Change Rx)</div>
+            <div className="flex flex-wrap gap-2">
+              {poRecs.slice(0,5).map(rec=>(
+                <label key={rec.drug} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedDrug===rec.drug?"border-green-600 bg-green-50":"border-gray-200 hover:border-gray-300"}`}>
+                  <input type="radio" name="mdrx" value={rec.drug} checked={selectedDrug===rec.drug} onChange={()=>setSelectedDrug(rec.drug)} className="flex-shrink-0"/>
+                  <span className="text-sm font-medium text-gray-900">{rec.drug}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${rec.susceptPct>=90?"bg-green-100 text-green-800":rec.susceptPct>=75?"bg-blue-100 text-blue-800":"bg-yellow-100 text-yellow-800"}`}>{rec.susceptPct}%S</span>
+                  <span className="text-xs text-gray-500">{rec.dose}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MD Action Buttons — sticky bottom */}
+      <div className="border-t bg-green-50 border-green-200 p-3 sm:p-4 flex-shrink-0">
+        <div className="text-xs text-gray-500 mb-2 text-center">MD Actions — All patients discharged on oral antibiotics</div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={()=>onMDAction(patient.id,"approved",null,note||editedSummary)}
+            className="flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold bg-green-600 hover:bg-green-700 text-white shadow transition-all">
+            ✓ Approve RN Rec
+          </button>
+          <button
+            onClick={()=>{ if(!selectedDrug){alert("Select an antibiotic first");return;} onMDAction(patient.id,"changed",selectedDrug,note||editedSummary); }}
+            className="flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow transition-all">
+            💊 Change Rx → {selectedDrug||"(select)"}
+          </button>
+          <button
+            onClick={()=>onMDAction(patient.id,"noted",null,note||"MD reviewed — no change.")}
+            className="flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold border border-gray-400 text-gray-700 hover:bg-gray-100 transition-all">
+            📋 Note & Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MDDashboard({ patients, setPatients, institution }) {
+  // MD queue: only true escalations (not discrepancy — those were handled by RN)
+  const escalatedPatients = useMemo(()=>{
+    const all = patients.filter(p=>p.status==="escalate");
+    // Resolved (mdAction set) go to bottom
+    const pending = all.filter(p=>!p.mdAction);
+    const resolved = all.filter(p=>p.mdAction);
+    return [...pending, ...resolved];
+  },[patients]);
+
+  const [selectedId, setSelectedId] = useState(()=>patients.find(p=>p.status==="escalate")?.id||null);
+  const [mobilePane, setMobilePane] = useState("queue");
+
+  const selectedPatient = patients.find(p=>p.id===selectedId);
+
+  const handleMDAction = useCallback((id,type,drug,note)=>{
+    setPatients(prev=>prev.map(p=>p.id===id?{...p,mdAction:{type,drug,note,timestamp:new Date().toISOString()}}:p));
+    // Auto-advance to next unreviewed escalated patient
+    const remaining = escalatedPatients.filter(p=>p.id!==id&&!p.mdAction);
+    if(remaining.length>0){ setSelectedId(remaining[0].id); }
+  },[escalatedPatients, setPatients]);
+
+  // Autonomy stats — relative to full patient list
+  const mdStats = useMemo(()=>{
+    const N = patients.length;
+    const autoResolved = patients.filter(p=>
+      p.status==="cleared" ||
+      p.actionTaken?.type==="changed" ||
+      p.actionTaken?.type==="reviewed"
+    ).length;
+    const needsMD = patients.filter(p=>p.status==="escalate"&&!p.mdAction).length;
+    const mdDone  = patients.filter(p=>p.mdAction).length;
+    return { N, autoResolved, needsMD, mdDone, timeSaved: autoResolved*8 };
+  },[patients]);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* ── Autonomy narrative banner ── */}
+      <div className="bg-[#1B5E20] text-white px-4 py-2.5 flex-shrink-0 border-b border-green-900">
+        <div className="text-xs sm:text-sm font-medium text-green-100 leading-relaxed">
+          🤖 The AI has autonomously processed <span className="font-bold text-white">{mdStats.N}</span> cases.{" "}
+          <span className="font-bold text-green-300">{mdStats.autoResolved}</span> were resolved without human review.
+          The following <span className="font-bold text-yellow-300">{mdStats.needsMD}</span> case{mdStats.needsMD!==1?"s":""} require MD sign-off.
+        </div>
+      </div>
+      {/* ── AI Autonomy stats strip ── */}
+      <div className="bg-green-800 text-white px-4 py-1.5 flex-shrink-0 flex flex-wrap items-center gap-4 text-xs border-b border-green-900">
+        <div className="flex items-center gap-1.5">
+          <span className="text-green-300">🤖</span>
+          <span className="text-green-100">AI Resolved: <span className="font-bold text-white">{mdStats.autoResolved}</span></span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-yellow-300">👨‍⚕️</span>
+          <span className="text-green-100">MD Review: <span className="font-bold text-white">{mdStats.needsMD}</span></span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-blue-300">⏱</span>
+          <span className="text-green-100">Est. Time Saved: <span className="font-bold text-white">~{mdStats.timeSaved} min</span></span>
+        </div>
+        {mdStats.mdDone>0&&(
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-green-300">✅</span>
+            <span className="text-green-100">MD Resolved: <span className="font-bold text-white">{mdStats.mdDone}</span></span>
+          </div>
+        )}
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Escalated queue — green tint bg */}
+        <div className={`border-r border-green-200 flex flex-col
+          ${mobilePane==="queue"?"flex":"hidden"} md:flex
+          w-full md:w-72 md:flex-shrink-0`} style={{background:"#E8F5E9"}}>
+          <div className="px-3 py-2 border-b border-green-200 bg-green-100 flex-shrink-0">
+            <div className="text-xs font-semibold text-green-900 uppercase tracking-wide">Escalated Cases — Awaiting MD</div>
+            <div className="text-xs text-green-700 mt-0.5">{mdStats.needsMD} pending · {mdStats.mdDone} resolved</div>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
+            {escalatedPatients.length===0&&(
+              <div className="text-center text-sm text-gray-400 mt-8 px-4">No escalated cases</div>
+            )}
+            {escalatedPatients.map(p=>(
+              <MDPatientRow key={p.id} patient={p} isSelected={p.id===selectedId}
+                onClick={()=>{ setSelectedId(p.id); setMobilePane("workspace"); }}/>
+            ))}
+          </div>
+          <div className="p-2 border-t border-green-200 bg-green-100 text-center text-xs text-green-800">
+            {escalatedPatients.length} escalated · {mdStats.mdDone} resolved
+          </div>
+        </div>
+
+        {/* MD Workspace */}
+        <div className={`flex-1 overflow-hidden flex flex-col
+          ${mobilePane==="workspace"?"flex":"hidden"} md:flex`}>
+          {selectedPatient
+            ? <MDWorkspace key={selectedPatient.id} patient={selectedPatient} institution={institution} onMDAction={handleMDAction}/>
+            : <div className="flex items-center justify-center h-full text-gray-400 bg-white">
+                <div className="text-center px-6">
+                  <div className="text-5xl mb-3">🩺</div>
+                  <div className="text-lg font-medium">Select an escalated patient</div>
+                  <div className="text-sm mt-1 text-gray-400">Review RN escalations and take action</div>
+                </div>
+              </div>}
+        </div>
+      </div>
+
+      {/* Mobile bottom tab bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-green-200 flex z-40 pb-safe shadow-lg">
+        <button onClick={()=>setMobilePane("queue")}
+          className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 relative transition-colors ${mobilePane==="queue"?"text-green-700":"text-gray-500"}`}>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+          <span className="text-xs font-medium">Escalated</span>
+          {mdStats.needsMD>0&&(
+            <span className="absolute top-1.5 left-1/2 ml-2 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
+              {mdStats.needsMD>9?"9+":mdStats.needsMD}
+            </span>
+          )}
+        </button>
+        <button onClick={()=>setMobilePane("workspace")} disabled={!selectedPatient}
+          className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-colors ${mobilePane==="workspace"?"text-green-700":"text-gray-500"} disabled:opacity-40`}>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <span className="text-xs font-medium">{selectedPatient?selectedPatient.name.last:"Review"}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    MAIN APP
 ══════════════════════════════════════════════════════════ */
 const ALL_PATIENTS = generatePatients(120);
 const BATCH_SIZE   = 15;
 
 function App() {
+  const [activeTab,setActiveTab]     = useState("rn"); // "rn" | "md"
   const [institution,setInstitution] = useState("stanford");
   const [patients,setPatients]       = useState(ALL_PATIENTS.slice(0,BATCH_SIZE));
   const [batchIdx,setBatchIdx]       = useState(1);
@@ -912,64 +1298,97 @@ function App() {
     <div className="h-screen flex flex-col bg-epic-bg overflow-hidden">
 
       {/* ── Header ── */}
-      <header style={{background:"#1976D2"}} className="text-white px-4 py-2.5 shadow-md flex-shrink-0">
+      <header style={{background: activeTab==="md" ? "#1B5E20" : "#1976D2"}}
+        className="text-white px-4 py-2.5 shadow-md flex-shrink-0 transition-colors duration-300">
         <div className="flex items-center justify-between gap-3">
           {/* Logo */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-lg">⚕</span>
             <div>
               <div className="font-bold text-sm sm:text-base leading-tight">UCx AI Agent</div>
-              <div className="text-blue-200 text-xs hidden sm:block">RN Culture Review Workflow</div>
+              <div className="text-xs hidden sm:block" style={{color: activeTab==="md" ? "#A5D6A7" : "#90CAF9"}}>
+                {activeTab==="md" ? "Autonomous AI Mode — Escalated Cases Only" : "RN Culture Review Workflow"}
+              </div>
             </div>
           </div>
 
-          {/* Desktop stats */}
-          <div className="hidden md:flex items-center gap-4">
-            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.actionRequired} Action Required</span></div>
-            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.cleared} Cleared</span></div>
-            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.pending} Pending</span></div>
-          </div>
-
-          {/* Institution toggle */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-blue-200 hidden lg:inline">Antibiogram:</span>
-            {/* Mobile: compact select */}
-            <select
-              className="md:hidden bg-[#1565C0] text-white text-xs rounded px-2 py-1.5 border border-blue-400 focus:outline-none"
-              value={institution} onChange={e=>{setInstitution(e.target.value);setCustomABG(null);}}>
-              <option value="stanford">Stanford</option>
-              <option value="mgh">Harvard MGH</option>
-            </select>
-            {/* Desktop: pill buttons */}
-            <div className="hidden md:flex rounded overflow-hidden border border-blue-400 text-xs">
-              {[{id:"stanford",label:"Stanford"},{id:"mgh",label:"Harvard MGH"}].map(opt=>(
-                <button key={opt.id} onClick={()=>{setInstitution(opt.id);setCustomABG(null);}}
-                  className={`px-3 py-1.5 font-medium transition-colors ${!customABG&&institution===opt.id?"bg-white text-[#1565C0]":"bg-[#1565C0] text-blue-200 hover:bg-[#1976D2]"}`}>
-                  {opt.label}
-                </button>
-              ))}
-              <label className={`px-3 py-1.5 font-medium cursor-pointer transition-colors ${customABG?"bg-white text-[#1565C0]":"bg-[#1565C0] text-blue-200 hover:bg-[#1976D2]"}`}>
-                + Upload
-                <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={e=>{
-                  const f=e.target.files?.[0]; if(!f)return;
-                  const r=new FileReader(); r.onload=ev=>{try{setCustomABG(JSON.parse(ev.target.result));}catch{alert("Invalid JSON");}};r.readAsText(f);
-                }}/>
-              </label>
+          {/* ── App Tab Toggle ── */}
+          <div className="flex-1 flex justify-center">
+            <div className="flex rounded-full overflow-hidden border text-xs font-semibold"
+              style={{borderColor: activeTab==="md" ? "#4CAF50" : "#42A5F5"}}>
+              <button
+                onClick={()=>setActiveTab("rn")}
+                className={`px-3 py-1.5 transition-colors ${activeTab==="rn" ? "bg-white" : "bg-transparent text-white/80 hover:bg-white/10"}`}
+                style={activeTab==="rn" ? {color:"#1565C0"} : {}}>
+                👩‍⚕️ RN Review
+              </button>
+              <button
+                onClick={()=>setActiveTab("md")}
+                className={`px-3 py-1.5 transition-colors ${activeTab==="md" ? "bg-white" : "bg-transparent text-white/80 hover:bg-white/10"}`}
+                style={activeTab==="md" ? {color:"#1B5E20"} : {}}>
+                🔬 MD Dashboard
+              </button>
             </div>
-            {customABG&&<span className="text-xs bg-white text-[#1565C0] px-2 py-0.5 rounded font-semibold">Custom</span>}
+          </div>
+
+          {/* Desktop stats (RN only) / Institution toggle */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {activeTab==="rn" && (
+              <div className="hidden md:flex items-center gap-3">
+                <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.actionRequired} Action</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-300 inline-block"></span><span className="text-blue-100 text-xs">{stats.cleared} Cleared</span></div>
+              </div>
+            )}
+            {/* Institution toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs hidden lg:inline" style={{color: activeTab==="md" ? "#A5D6A7" : "#90CAF9"}}>Antibiogram:</span>
+              {/* Mobile: compact select */}
+              <select
+                className="md:hidden text-white text-xs rounded px-2 py-1.5 border focus:outline-none"
+                style={{background: activeTab==="md" ? "#2E7D32" : "#1565C0", borderColor: activeTab==="md" ? "#4CAF50" : "#42A5F5"}}
+                value={institution} onChange={e=>{setInstitution(e.target.value);setCustomABG(null);}}>
+                <option value="stanford">Stanford</option>
+                <option value="mgh">Harvard MGH</option>
+              </select>
+              {/* Desktop: pill buttons */}
+              <div className="hidden md:flex rounded overflow-hidden text-xs"
+                style={{border: `1px solid ${activeTab==="md" ? "#4CAF50" : "#42A5F5"}`}}>
+                {[{id:"stanford",label:"Stanford"},{id:"mgh",label:"Harvard MGH"}].map(opt=>(
+                  <button key={opt.id} onClick={()=>{setInstitution(opt.id);setCustomABG(null);}}
+                    className="px-3 py-1.5 font-medium transition-colors"
+                    style={!customABG&&institution===opt.id
+                      ? {background:"white", color: activeTab==="md" ? "#1B5E20" : "#1565C0"}
+                      : {background: activeTab==="md" ? "#2E7D32" : "#1565C0", color: activeTab==="md" ? "#A5D6A7" : "#90CAF9"}}>
+                    {opt.label}
+                  </button>
+                ))}
+                {activeTab==="rn" && (
+                  <label className={`px-3 py-1.5 font-medium cursor-pointer transition-colors ${customABG?"bg-white text-[#1565C0]":"bg-[#1565C0] text-blue-200 hover:bg-[#1976D2]"}`}>
+                    + Upload
+                    <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={e=>{
+                      const f=e.target.files?.[0]; if(!f)return;
+                      const r=new FileReader(); r.onload=ev=>{try{setCustomABG(JSON.parse(ev.target.result));}catch{alert("Invalid JSON");}};r.readAsText(f);
+                    }}/>
+                  </label>
+                )}
+              </div>
+              {customABG&&<span className="text-xs bg-white px-2 py-0.5 rounded font-semibold" style={{color: activeTab==="md" ? "#1B5E20" : "#1565C0"}}>Custom</span>}
+            </div>
           </div>
         </div>
 
-        {/* Mobile stats sub-bar */}
-        <div className="md:hidden flex items-center gap-3 mt-1.5 text-xs text-blue-200">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-300 inline-block"></span>{stats.actionRequired} Action</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-300 inline-block"></span>{stats.cleared} Cleared</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block"></span>{stats.pending} Pending</span>
-        </div>
+        {/* Mobile stats sub-bar (RN only) */}
+        {activeTab==="rn" && (
+          <div className="md:hidden flex items-center gap-3 mt-1.5 text-xs text-blue-200">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-300 inline-block"></span>{stats.actionRequired} Action</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-300 inline-block"></span>{stats.cleared} Cleared</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block"></span>{stats.pending} Pending</span>
+          </div>
+        )}
       </header>
 
-      {/* Load-more banner */}
-      {showLoadMore&&(
+      {/* Load-more banner — RN tab only */}
+      {showLoadMore&&activeTab==="rn"&&(
         <div className="bg-epic-sectionBg border-b border-[#BBDEFB] px-4 py-2 flex items-center justify-between flex-shrink-0 gap-2">
           <span className="text-xs sm:text-sm text-epic-dark font-medium">✓ All active cases resolved — {ALL_PATIENTS.length-batchIdx*BATCH_SIZE} more in queue</span>
           <button onClick={loadNextBatch} className="text-xs px-3 py-1.5 bg-[#1976D2] hover:bg-[#1565C0] text-white rounded font-semibold flex-shrink-0">
@@ -978,79 +1397,79 @@ function App() {
         </div>
       )}
 
-      {/* ── Main content area ── */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── Tab Content ── */}
+      {activeTab==="md"
+        ? <MDDashboard patients={patients} setPatients={setPatients} institution={institution}/>
+        : <>
+            {/* ── RN View ── */}
+            <div className="flex flex-1 overflow-hidden">
 
-        {/* Patient Queue — full width on mobile when mobilePane==="queue", sidebar on md+ */}
-        <div className={`bg-white border-r border-[#BBDEFB] flex flex-col
-          ${mobilePane==="queue"?"flex":"hidden"} md:flex
-          w-full md:w-72 md:flex-shrink-0`}>
-          {/* Filter pills — horizontal scroll on mobile */}
-          <div className="px-2 py-2 border-b border-[#BBDEFB] bg-epic-sectionBg flex-shrink-0">
-            <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
-              {[{id:"all",l:"All"},{id:"action",l:`Action (${stats.actionRequired})`},{id:"cleared",l:`Cleared (${stats.cleared})`},{id:"pending",l:"Pending"}].map(f=>(
-                <button key={f.id} onClick={()=>setFilter(f.id)}
-                  className={`text-xs px-2.5 py-1 rounded font-medium transition-colors whitespace-nowrap flex-shrink-0 ${filterStatus===f.id?"bg-[#1976D2] text-white":"bg-white text-gray-600 border border-gray-300 hover:border-[#1976D2] hover:text-[#1976D2]"}`}>
-                  {f.l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
-            {filtered.length===0&&<div className="text-center text-sm text-gray-400 mt-8 px-4">No patients in this category</div>}
-            {filtered.map(p=>(
-              <PatientCard key={p.id} patient={p} isSelected={p.id===selectedId} onClick={()=>selectPatient(p.id)}/>
-            ))}
-          </div>
-          <div className="p-2 border-t border-[#BBDEFB] bg-epic-sectionBg text-center text-xs text-gray-400">
-            {patients.length} patients · Batch {batchIdx}/{Math.ceil(ALL_PATIENTS.length/BATCH_SIZE)}
-          </div>
-        </div>
-
-        {/* Workspace — full width on mobile when mobilePane==="workspace", flex-1 on md+ */}
-        <div className={`flex-1 overflow-hidden flex flex-col
-          ${mobilePane==="workspace"?"flex":"hidden"} md:flex`}>
-          {selectedPatient
-            ? <PatientWorkspace key={selectedPatient.id} patient={selectedPatient} institution={institution} onAction={handleAction}/>
-            : <div className="flex items-center justify-center h-full text-gray-400 bg-white">
-                <div className="text-center px-6">
-                  <div className="text-5xl mb-3">⚕</div>
-                  <div className="text-lg font-medium">Select a patient to begin</div>
-                  <div className="text-sm mt-1 text-gray-400">Use the queue to navigate patients</div>
+              {/* Patient Queue */}
+              <div className={`bg-white border-r border-[#BBDEFB] flex flex-col
+                ${mobilePane==="queue"?"flex":"hidden"} md:flex
+                w-full md:w-72 md:flex-shrink-0`}>
+                <div className="px-2 py-2 border-b border-[#BBDEFB] bg-epic-sectionBg flex-shrink-0">
+                  <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
+                    {[{id:"all",l:"All"},{id:"action",l:`Action (${stats.actionRequired})`},{id:"cleared",l:`Cleared (${stats.cleared})`},{id:"pending",l:"Pending"}].map(f=>(
+                      <button key={f.id} onClick={()=>setFilter(f.id)}
+                        className={`text-xs px-2.5 py-1 rounded font-medium transition-colors whitespace-nowrap flex-shrink-0 ${filterStatus===f.id?"bg-[#1976D2] text-white":"bg-white text-gray-600 border border-gray-300 hover:border-[#1976D2] hover:text-[#1976D2]"}`}>
+                        {f.l}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>}
-        </div>
-      </div>
+                <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
+                  {filtered.length===0&&<div className="text-center text-sm text-gray-400 mt-8 px-4">No patients in this category</div>}
+                  {filtered.map(p=>(
+                    <PatientCard key={p.id} patient={p} isSelected={p.id===selectedId} onClick={()=>selectPatient(p.id)}/>
+                  ))}
+                </div>
+                <div className="p-2 border-t border-[#BBDEFB] bg-epic-sectionBg text-center text-xs text-gray-400">
+                  {patients.length} patients · Batch {batchIdx}/{Math.ceil(ALL_PATIENTS.length/BATCH_SIZE)}
+                </div>
+              </div>
 
-      {/* ── Mobile bottom tab bar (hidden on desktop) ── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#BBDEFB] flex z-40 pb-safe shadow-lg">
-        {/* Patients tab */}
-        <button onClick={()=>setMobilePane("queue")}
-          className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 relative transition-colors ${mobilePane==="queue"?"text-[#1976D2]":"text-gray-500"}`}>
-          {/* List icon */}
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-          </svg>
-          <span className="text-xs font-medium">Patients</span>
-          {stats.actionRequired>0&&(
-            <span className="absolute top-1.5 left-1/2 ml-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
-              {stats.actionRequired>9?"9+":stats.actionRequired}
-            </span>
-          )}
-        </button>
+              {/* Workspace */}
+              <div className={`flex-1 overflow-hidden flex flex-col
+                ${mobilePane==="workspace"?"flex":"hidden"} md:flex`}>
+                {selectedPatient
+                  ? <PatientWorkspace key={selectedPatient.id} patient={selectedPatient} institution={institution} onAction={handleAction}/>
+                  : <div className="flex items-center justify-center h-full text-gray-400 bg-white">
+                      <div className="text-center px-6">
+                        <div className="text-5xl mb-3">⚕</div>
+                        <div className="text-lg font-medium">Select a patient to begin</div>
+                        <div className="text-sm mt-1 text-gray-400">Use the queue to navigate patients</div>
+                      </div>
+                    </div>}
+              </div>
+            </div>
 
-        {/* Review tab */}
-        <button onClick={()=>setMobilePane("workspace")} disabled={!selectedPatient}
-          className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-colors ${mobilePane==="workspace"?"text-[#1976D2]":"text-gray-500"} disabled:opacity-40`}>
-          {/* Chart icon */}
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          <span className="text-xs font-medium truncate max-w-[80px]">
-            {selectedPatient?selectedPatient.name.last:"Review"}
-          </span>
-        </button>
-      </div>
+            {/* RN Mobile bottom tab bar */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#BBDEFB] flex z-40 pb-safe shadow-lg">
+              <button onClick={()=>setMobilePane("queue")}
+                className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 relative transition-colors ${mobilePane==="queue"?"text-[#1976D2]":"text-gray-500"}`}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+                <span className="text-xs font-medium">Patients</span>
+                {stats.actionRequired>0&&(
+                  <span className="absolute top-1.5 left-1/2 ml-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
+                    {stats.actionRequired>9?"9+":stats.actionRequired}
+                  </span>
+                )}
+              </button>
+              <button onClick={()=>setMobilePane("workspace")} disabled={!selectedPatient}
+                className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-colors ${mobilePane==="workspace"?"text-[#1976D2]":"text-gray-500"} disabled:opacity-40`}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <span className="text-xs font-medium truncate max-w-[80px]">
+                  {selectedPatient?selectedPatient.name.last:"Review"}
+                </span>
+              </button>
+            </div>
+          </>
+      }
     </div>
   );
 }
