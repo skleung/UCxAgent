@@ -467,6 +467,7 @@ function generatePatients(count) {
       urinalysis:ua,
       culture:{ specimenType:rnd(["Clean catch midstream","Clean catch midstream","Catheter"]), collectedAt:collectedAt.toISOString(), finalizedAt:finalizedAt.toISOString(), colonyCount:rnd([">100,000 CFU/mL",">100,000 CFU/mL","50,000–100,000 CFU/mL"]), organism, gramStain:oMeta.gram, susceptibilities, isMDRO },
       clinicalContext:buildContext(organism,caseType,age,sex,comorbidity),
+      caseType,
       status, escalateReasons,
       requiresAdmission:false, // All patients discharged on oral antibiotics
       actionTaken:null,
@@ -1480,14 +1481,11 @@ function runAllClinicalTests(patients) {
 
   // 6. Demographics — age ranges by case type
   suite('Demographics Age Ranges', assert => {
-    patients.forEach(pt => {
-      if (pt.status === 'escalate' && pt.culture.isMDR) {
-        assert(`MDRO pt ${pt.name.first} ${pt.name.last} age 58-85`, pt.age >= 50 && pt.age <= 90, `age=${pt.age}`);
-      }
+    patients.filter(p => p.caseType === 'mdro').forEach(pt => {
+      assert(`MDRO pt ${pt.name.first} ${pt.name.last} age 50-90`, pt.age >= 50 && pt.age <= 90, `age=${pt.age}`);
     });
-    const pyeloPts = patients.filter(p => hasPyelo(p.clinicalContext) && p.status !== 'escalate');
-    pyeloPts.forEach(pt => {
-      assert(`Pyelo pt ${pt.name.first} ${pt.name.last} age 20-55`, pt.age >= 18 && pt.age <= 60, `age=${pt.age}`);
+    patients.filter(p => p.caseType === 'pyelo').forEach(pt => {
+      assert(`Pyelo pt ${pt.name.first} ${pt.name.last} age 18-55`, pt.age >= 18 && pt.age <= 55, `age=${pt.age}`);
     });
   });
 
@@ -1507,7 +1505,7 @@ function runAllClinicalTests(patients) {
 
   // 8. Pyelo patients not on Nitrofurantoin/Fosfomycin empirically
   suite('Pyelo Empiric Drug Appropriateness', assert => {
-    patients.filter(p => hasPyelo(p.clinicalContext)).forEach(pt => {
+    patients.filter(p => p.caseType === 'pyelo').forEach(pt => {
       const drug = pt.activeMedication.drug;
       assert(
         `${pt.name.first} ${pt.name.last} (pyelo): active drug ${drug} should not be Nitrofurantoin/Fosfomycin`,
@@ -1533,7 +1531,7 @@ function runAllClinicalTests(patients) {
   console.groupEnd();
   return { totalPass, totalFail, results };
 }
-window.runAllClinicalTests = () => runAllClinicalTests(ALL_PATIENTS);
+window.runAllClinicalTests = runAllClinicalTests;  // expose for console use
 // ─── END TEST HARNESS ───────────────────────────────────────────────────────
 
 function App() {
@@ -1560,7 +1558,7 @@ function App() {
     setPatients(prev=>prev.map(p=>p.id===id?{...p,actionTaken:{type,drug,note,timestamp:new Date().toISOString()}}:p));
   },[]);
 
-  useEffect(()=>{ runAllClinicalTests(ALL_PATIENTS); },[]);
+  useEffect(()=>{ try { runAllClinicalTests(ALL_PATIENTS); } catch(e) { console.error('Clinical test harness error:', e); } },[]);
 
   useEffect(()=>{
     const active=patients.filter(p=>(p.status==="discrepancy"||p.status==="escalate")&&!p.actionTaken);
